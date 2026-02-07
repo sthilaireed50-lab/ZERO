@@ -1,12 +1,16 @@
--- 🍎 AUTO QUEST SYSTEM - BLOX FRUITS
--- Sistema automático de misiones basado en datos del juego
+-- 🔥 REDZ HUB COMPLETO - BLOX FRUITS
+-- Versión completa con todas las funciones
 
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local Debris = game:GetService("Debris")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 local VirtualInput = game:GetService("VirtualInputManager")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
 
 -- Variables principales
 local Player = Players.LocalPlayer
@@ -14,556 +18,749 @@ local Character = Player.Character or Player.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 local Humanoid = Character:WaitForChild("Humanoid")
 
--- Sistema de datos de quests (los que proporcionaste)
-local QuestData = {
-    Data = {
-        LastClosestNPC = "",
-        IsFakeData = true,
-        NPCs = {
-            ["BuggyQuest1"] = "Pirate Adventurer",
-            ["FountainQuest"] = "Freezeburg Quest Giver",
-            ["ColosseumQuest"] = "Colosseum Quest Giver",
-            ["SkyQuest"] = "Sky Adventurer",
-            ["JungleQuest"] = "Adventurer",
-            ["MagmaQuest"] = "The Mayor",
-            ["PrisonerQuest"] = "Jail Keeper",
-            ["SkyExp2Quest"] = "Sky Quest Giver 2",
-            ["MarineQuest2"] = "Marine",
-            ["BanditQuest1"] = "Bandit Quest Giver",
-            ["FishmanQuest"] = "King Neptune",
-            ["MarineQuest"] = "Marine Leader",
-            ["SkyExp1Quest"] = "Mole",
-            ["DesertQuest"] = "Desert Adventurer",
-            ["ImpelQuest"] = "Head Jailer",
-            ["SnowQuest"] = "Villager",
-            ["IceSideQuest"] = "Ice Quest Giver",
-            ["ZombieQuest"] = "Graveyard Quest Giver",
-            ["Area2Quest"] = "Area 2 Quest Giver",
-            ["Area1Quest"] = "Area 1 Quest Giver",
-            ["MarineQuest3"] = "Marine Quest Giver",
-            ["SnowMountainQuest"] = "Snow Quest Giver",
-            ["ShipQuest1"] = "Rear Crew Quest Giver",
-            ["FireSideQuest"] = "Fire Quest Giver",
-            ["ShipQuest2"] = "Front Crew Quest Giver",
-            ["ForgottenQuest"] = "Forgotten Quest Giver",
-            ["FrostQuest"] = "Frost Quest Giver",
-            ["IceCreamIslandQuest"] = "Ice Cream Quest Giver",
-            ["VenomCrewQuest"] = "Hydra Town Quest Giver",
-            ["ChocQuest1"] = "Chocolate Quest Giver 1",
-            ["DeepForestIsland"] = "Deep Forest Quest Giver",
-            ["DragonCrewQuest"] = "Dragon Crew Quest Giver",
-            ["DeepForestIsland2"] = "Deep Forest Area 2 Quest Giver",
-            ["NutsIslandQuest"] = "Peanut Quest Giver",
-            ["HornedMan"] = "Horned Man",
-            ["PiratePortQuest"] = "Pirate Port Quest Giver",
-            ["CandyQuest1"] = "Candy Cane Quest Giver",
-            ["MarineTreeIsland"] = "Marine Tree Quest Giver",
-            ["HauntedQuest2"] = "Haunted Castle Quest Giver 2",
-            ["TikiQuest2"] = "Tiki Quest Giver 2",
-            ["TikiQuest1"] = "Tiki Quest Giver 1",
-            ["DeepForestIsland3"] = "Turtle Adventure Quest Giver",
-            ["CakeQuest2"] = "Cake Quest Giver 2",
-            ["ArenaTrainer"] = "Arena Trainer",
-            ["TikiQuest3"] = "Tiki Quest Giver 3",
-            ["CakeQuest1"] = "Cake Quest Giver 1",
-            ["ChocQuest2"] = "Chocolate Quest Giver 2",
-            ["HauntedQuest1"] = "Haunted Castle Quest Giver 1"
-        }
-    }
-}
-
--- Configuración del sistema de quests
-local QuestSystem = {
+-- Configuración del Redz Hub
+local RedzHub = {
+    -- Sistema principal
     Enabled = false,
-    CurrentQuest = nil,
-    CurrentNPC = nil,
-    CurrentTask = nil,
-    Kills = 0,
-    RequiredKills = 0,
-    TargetNPC = nil,
+    Version = "3.2.5",
+    Loaded = false,
     
-    -- Configuración
-    AutoAccept = true,
-    AutoTurnIn = true,
-    FarmDistance = 30,
-    WalkSpeed = 50,
-    JumpPower = 50,
+    -- Auto Farm
+    AutoFarm = false,
+    AutoQuest = false,
+    AutoBoss = false,
+    AutoSeaBeast = false,
+    AutoRaid = false,
+    AutoCollect = true,
+    AutoSell = false,
     
-    -- Estado
-    IsFarming = false,
-    HasQuest = false,
-    QuestCompleted = false
+    -- Combat
+    AutoClick = true,
+    AutoSkill = true,
+    FastAttack = true,
+    SilentAim = true,
+    AimAssist = true,
+    NoCooldown = false,
+    
+    -- Player
+    WalkSpeed = 100,
+    JumpPower = 120,
+    FlySpeed = 150,
+    InfEnergy = true,
+    NoClip = false,
+    GodMode = false,
+    
+    -- Visual
+    FullBright = true,
+    NoFog = true,
+    EspPlayers = false,
+    EspNPCs = true,
+    EspChests = true,
+    Tracers = false,
+    
+    -- Misc
+    AntiAFK = true,
+    AutoHaki = true,
+    AutoRace = false,
+    AutoBuyFragments = false,
+    HideName = false,
+    SafeMode = true
 }
 
--- Función para encontrar NPC por nombre
-local function FindNPC(npcName)
-    for _, npc in pairs(Workspace.NPCs:GetChildren()) do
-        if npc.Name == npcName then
-            if npc:FindFirstChild("HumanoidRootPart") then
-                return npc
-            end
+-- ============================================
+-- SISTEMA DE WARNING (El que tienes)
+-- ============================================
+
+local function ShowWarning()
+    local CoreGui = (gethui and gethui()) or game:GetService("CoreGui")
+    
+    if CoreGui:FindFirstChild("rz-warning") then
+        CoreGui["rz-warning"]:Destroy()
+    end
+
+    local ScreenGui = Instance.new("ScreenGui", CoreGui)
+    ScreenGui.Name = "rz-warning"
+    ScreenGui.IgnoreGuiInset = true
+    Debris:AddItem(ScreenGui, 25)
+
+    local Background = Instance.new("Frame", ScreenGui)
+    Background.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    Background.Size = UDim2.fromScale(1, 1)
+        
+    local Gradient = Instance.new("UIGradient", Background)
+    Gradient.Rotation = 90
+    Gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0, 0, 0));
+        ColorSequenceKeypoint.new(1.00, Color3.fromRGB(25, 25, 25));
+    })
+
+    local Center = Instance.new("Frame", Background)
+    Center.Size = UDim2.fromScale(0.25, 0.09);
+    Center.AnchorPoint = Vector2.new(0.5, 1)
+    Center.Position = UDim2.new(0.5, 0, 0.95, 0)
+    Center.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+
+    local Corner = Instance.new("UICorner", Center)
+    Corner.CornerRadius = UDim.new(0, 8)
+
+    local ServerLink = "discord.gg/redz-hub"
+    local WarnMessage = "redz Hub v" .. RedzHub.Version .. " loaded!\nJoin our discord for updates & support"
+
+    local Warn = Instance.new("TextLabel", Background)
+    Warn.Text = WarnMessage
+    Warn.Size = UDim2.new(0.6, 0, 0.2, 0)
+    Warn.AnchorPoint = Vector2.new(0.5, 0.5)
+    Warn.Position = UDim2.fromScale(0.5, 0.5)
+    Warn.Font = Enum.Font.FredokaOne
+    Warn.TextColor3 = Color3.fromRGB(230, 230, 230)
+    Warn.TextScaled = true
+    Warn.BackgroundTransparency = 1
+
+    local CopyLink = Instance.new("TextButton", Center)
+    CopyLink.Text = ServerLink
+    CopyLink.Size = UDim2.new(0.8, 0, 0.6, 0)
+    CopyLink.AnchorPoint = Vector2.new(0.5, 0.5)
+    CopyLink.Position = UDim2.fromScale(0.5, 0.5)
+    CopyLink.Font = Enum.Font.FredokaOne
+    CopyLink.TextColor3 = Color3.fromRGB(180, 180, 180)
+    CopyLink.TextScaled = true
+    CopyLink.TextTransparency = 0.2
+    CopyLink.BackgroundTransparency = 1
+
+    CopyLink.Activated:Connect(function()
+        if CopyLink.Text ~= "Copied!" then
+            setclipboard(ServerLink)
+            CopyLink.Text = "Copied!"
+            task.wait(2)
+            CopyLink.Text = ServerLink
         end
-    end
-    return nil
+    end)
+
+    local CloseButton = Instance.new("TextButton", Background)
+    CloseButton.Size = UDim2.fromScale(0.1, 0.055)
+    CloseButton.Position = UDim2.fromScale(0.29, 0.99)
+    CloseButton.AnchorPoint = Vector2.new(1, 1)
+    CloseButton.Text = "Close"
+    CloseButton.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+    CloseButton.TextColor3 = Color3.fromRGB(235, 20, 20)
+    CloseButton.Font = Enum.Font.FredokaOne
+    CloseButton.TextScaled = true
+    CloseButton.TextTransparency = 0.6
+
+    local Corner = Instance.new("UICorner", CloseButton)
+    Corner.CornerRadius = UDim.new(0, 8)
+
+    CloseButton.Activated:Connect(function()
+        ScreenGui:Destroy()
+    end)
+    
+    return ScreenGui
 end
 
--- Función para obtener quest basado en nivel
-local function GetQuestForLevel(playerLevel)
-    -- Orden de quests por nivel
-    local questOrder = {
-        {level = 0, quest = "BanditQuest1"},
-        {level = 10, quest = "JungleQuest"},
-        {level = 30, quest = "BuggyQuest1"},
-        {level = 60, quest = "DesertQuest"},
-        {level = 90, quest = "SnowQuest"},
-        {level = 120, quest = "MarineQuest2"},
-        {level = 150, quest = "SkyQuest"},
-        {level = 190, quest = "PrisonerQuest"},
-        {level = 220, quest = "ImpelQuest"},
-        {level = 250, quest = "ColosseumQuest"},
-        {level = 300, quest = "MagmaQuest"},
-        {level = 375, quest = "FishmanQuest"},
-        {level = 450, quest = "SkyExp1Quest"},
-        {level = 525, quest = "SkyExp2Quest"},
-        {level = 625, quest = "FountainQuest"},
-        {level = 700, quest = "Area1Quest"},
-        {level = 775, quest = "Area2Quest"},
-        {level = 875, quest = "MarineQuest3"},
-        {level = 950, quest = "ZombieQuest"},
-        {level = 1000, quest = "SnowMountainQuest"},
-        {level = 1100, quest = "IceSideQuest"},
-        {level = 1175, quest = "FireSideQuest"},
-        {level = 1250, quest = "ShipQuest1"},
-        {level = 1300, quest = "ShipQuest2"},
-        {level = 1350, quest = "FrostQuest"},
-        {level = 1425, quest = "ForgottenQuest"},
-        {level = 1500, quest = "PiratePortQuest"},
-        {level = 1575, quest = "DragonCrewQuest"},
-        {level = 1625, quest = "VenomCrewQuest"},
-        {level = 1700, quest = "MarineTreeIsland"},
-        {level = 1775, quest = "DeepForestIsland3"},
-        {level = 1825, quest = "DeepForestIsland"},
-        {level = 1900, quest = "DeepForestIsland2"},
-        {level = 1975, quest = "HauntedQuest1"},
-        {level = 2025, quest = "HauntedQuest2"},
-        {level = 2075, quest = "NutsIslandQuest"},
-        {level = 2125, quest = "IceCreamIslandQuest"},
-        {level = 2200, quest = "CakeQuest1"},
-        {level = 2250, quest = "CakeQuest2"},
-        {level = 2300, quest = "ChocQuest1"},
-        {level = 2350, quest = "ChocQuest2"},
-        {level = 2400, quest = "CandyQuest1"},
-        {level = 2450, quest = "TikiQuest1"},
-        {level = 2500, quest = "TikiQuest2"},
-        {level = 2550, quest = "TikiQuest3"}
-    }
-    
-    -- Buscar quest apropiada para el nivel
-    for i = #questOrder, 1, -1 do
-        if playerLevel >= questOrder[i].level then
-            return questOrder[i].quest
-        end
-    end
-    
-    return "BanditQuest1"
-end
+-- ============================================
+-- SISTEMA DE AUTO FARM
+-- ============================================
 
--- Función para obtener información de la quest
-local function GetQuestInfo(questKey)
-    -- Aquí deberías tener la estructura completa de quests
-    -- Por ahora devolvemos datos de ejemplo
-    local questInfo = {
-        LevelReq = 0,
-        Name = "Bandit",
-        Task = {["Bandit"] = 5}
-    }
-    
-    -- Basado en las quests que proporcionaste
-    if questKey == "BanditQuest1" then
-        questInfo = {LevelReq = 0, Name = "Bandits", Task = {Bandit = 5}}
-    elseif questKey == "JungleQuest" then
-        questInfo = {LevelReq = 10, Name = "Monkeys", Task = {Monkey = 6}}
-    elseif questKey == "BuggyQuest1" then
-        questInfo = {LevelReq = 30, Name = "Pirates", Task = {Pirate = 8}}
-    elseif questKey == "DesertQuest" then
-        questInfo = {LevelReq = 60, Name = "Desert Bandit", Task = {["Desert Bandit"] = 8}}
-    elseif questKey == "SnowQuest" then
-        questInfo = {LevelReq = 90, Name = "Snow Bandit", Task = {["Snow Bandit"] = 7}}
-    end
-    
-    return questInfo
-end
+local FarmSystem = {
+    CurrentTarget = nil,
+    Farming = false,
+    Thread = nil
+}
 
--- Función para teleport a NPC
-local function TeleportToNPC(npc)
-    if not npc or not npc:FindFirstChild("HumanoidRootPart") then return end
-    
-    local npcPos = npc.HumanoidRootPart.Position
-    local teleportPos = npcPos + Vector3.new(0, 3, -5)
-    
-    HumanoidRootPart.CFrame = CFrame.new(teleportPos)
-    
-    -- Mirar al NPC
-    HumanoidRootPart.CFrame = CFrame.new(
-        teleportPos,
-        Vector3.new(npcPos.X, teleportPos.Y, npcPos.Z)
-    )
-    
-    return true
-end
-
--- Función para interactuar con NPC (simular click)
-local function InteractWithNPC(npc)
-    if not npc then return false end
-    
-    -- Simular click en el NPC
-    local clickPos = npc.HumanoidRootPart.Position
-    local ray = Ray.new(clickPos, Vector3.new(0, -10, 0))
-    
-    -- Esperar un momento
-    task.wait(0.5)
-    
-    return true
-end
-
--- Función para encontrar enemigos de la quest
-local function FindQuestEnemies(enemyName)
-    local enemies = {}
+local function FindNearestNPC()
+    local nearest = nil
+    local minDistance = math.huge
     
     -- Buscar en Enemies
     for _, enemy in pairs(Workspace.Enemies:GetChildren()) do
-        if enemy.Name:find(enemyName) or enemy.Name == enemyName then
-            if enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
-                if enemy:FindFirstChild("HumanoidRootPart") then
-                    table.insert(enemies, enemy)
-                end
-            end
-        end
-    end
-    
-    -- Buscar en NPCs (algunos enemigos están ahí)
-    for _, npc in pairs(Workspace.NPCs:GetChildren()) do
-        if npc.Name:find(enemyName) or npc.Name == enemyName then
-            if npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
-                if npc:FindFirstChild("HumanoidRootPart") then
-                    table.insert(enemies, npc)
-                end
-            end
-        end
-    end
-    
-    return enemies
-end
-
--- Función para farmear enemigos
-local function FarmEnemies(enemyName, requiredKills)
-    local kills = 0
-    local maxAttempts = requiredKills * 3
-    
-    for attempt = 1, maxAttempts do
-        if kills >= requiredKills then break end
-        
-        -- Buscar enemigos
-        local enemies = FindQuestEnemies(enemyName)
-        
-        if #enemies > 0 then
-            -- Tomar el enemigo más cercano
-            local closestEnemy = nil
-            local closestDistance = math.huge
-            
-            for _, enemy in ipairs(enemies) do
+        if enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
+            if enemy:FindFirstChild("HumanoidRootPart") then
                 local distance = (HumanoidRootPart.Position - enemy.HumanoidRootPart.Position).Magnitude
-                if distance < closestDistance then
-                    closestDistance = distance
-                    closestEnemy = enemy
+                if distance < minDistance and distance < 100 then
+                    minDistance = distance
+                    nearest = enemy
                 end
             end
-            
-            if closestEnemy then
-                -- Teleport al enemigo
-                local enemyPos = closestEnemy.HumanoidRootPart.Position
-                local attackPos = enemyPos + Vector3.new(0, 5, -8)
-                HumanoidRootPart.CFrame = CFrame.new(attackPos)
-                
-                -- Atacar
-                VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                task.wait(0.1)
-                VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                
-                -- Usar habilidades
-                VirtualInput:SendKeyEvent(true, "Z", false, game)
-                task.wait(0.1)
-                VirtualInput:SendKeyEvent(false, "Z", false, game)
-                
-                -- Verificar si murió
-                task.wait(0.5)
-                if not closestEnemy.Parent or closestEnemy.Humanoid.Health <= 0 then
-                    kills = kills + 1
-                    QuestSystem.Kills = kills
-                    print("[QUEST] Eliminados: " .. kills .. "/" .. requiredKills)
-                end
-            end
-        else
-            -- Buscar en otras ubicaciones
-            print("[QUEST] Buscando " .. enemyName .. "...")
-            task.wait(1)
         end
-        
-        task.wait(0.3)
     end
     
-    return kills
+    -- Buscar en NPCs
+    for _, npc in pairs(Workspace.NPCs:GetChildren()) do
+        if npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
+            if npc:FindFirstChild("HumanoidRootPart") then
+                local distance = (HumanoidRootPart.Position - npc.HumanoidRootPart.Position).Magnitude
+                if distance < minDistance and distance < 100 then
+                    minDistance = distance
+                    nearest = npc
+                end
+            end
+        end
+    end
+    
+    return nearest
 end
 
--- Sistema principal de Auto Quest
-local QuestThread
-local function StartQuestSystem()
-    if QuestThread then
-        task.cancel(QuestThread)
+local function StartAutoFarm()
+    if FarmSystem.Thread then
+        task.cancel(FarmSystem.Thread)
     end
     
-    QuestThread = task.spawn(function()
-        while QuestSystem.Enabled do
-            task.wait(1)
+    FarmSystem.Thread = task.spawn(function()
+        FarmSystem.Farming = true
+        
+        while RedzHub.AutoFarm and FarmSystem.Farming do
+            task.wait(0.3)
             
-            -- Obtener nivel del jugador (simulado)
-            local playerLevel = 1  -- Esto debería ser real
-            
-            -- Obtener quest actual basada en nivel
-            local questKey = GetQuestForLevel(playerLevel)
-            local questInfo = GetQuestInfo(questKey)
-            local npcName = QuestData.Data.NPCs[questKey]
-            
-            print("[QUEST SYSTEM]")
-            print("Quest: " .. questKey)
-            print("NPC: " .. (npcName or "Desconocido"))
-            print("Tarea: " .. questInfo.Name)
-            
-            -- Buscar NPC de la quest
-            local npc = FindNPC(npcName)
-            
-            if npc then
-                -- Teleport al NPC
-                if TeleportToNPC(npc) then
-                    print("[QUEST] Teleport a NPC: " .. npcName)
+            pcall(function()
+                local target = FindNearestNPC()
+                
+                if target and target:FindFirstChild("HumanoidRootPart") then
+                    FarmSystem.CurrentTarget = target
                     
-                    -- Interactuar con NPC (aceptar quest)
-                    if QuestSystem.AutoAccept then
-                        InteractWithNPC(npc)
-                        print("[QUEST] Quest aceptada")
-                        task.wait(1)
-                        
-                        -- Obtener enemigo a farmear
-                        local enemyName = next(questInfo.Task)
-                        local requiredKills = questInfo.Task[enemyName]
-                        
-                        if enemyName and requiredKills then
-                            print("[QUEST] Objetivo: " .. enemyName .. " x" .. requiredKills)
-                            
-                            -- Farmear enemigos
-                            QuestSystem.Kills = 0
-                            local kills = FarmEnemies(enemyName, requiredKills)
-                            
-                            if kills >= requiredKills then
-                                print("[QUEST] ✅ Quest completada!")
-                                
-                                -- Volver al NPC para entregar
-                                if QuestSystem.AutoTurnIn then
-                                    TeleportToNPC(npc)
-                                    task.wait(1)
-                                    InteractWithNPC(npc)
-                                    print("[QUEST] Quest entregada")
-                                end
-                            end
-                        end
+                    -- Teleport al enemigo
+                    local targetPos = target.HumanoidRootPart.Position
+                    HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, -8))
+                    
+                    -- Atacar
+                    if RedzHub.AutoClick then
+                        VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                        task.wait(0.05)
+                        VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
                     end
+                    
+                    -- Usar habilidades
+                    if RedzHub.AutoSkill then
+                        VirtualInput:SendKeyEvent(true, "Z", false, game)
+                        task.wait(0.1)
+                        VirtualInput:SendKeyEvent(false, "Z", false, game)
+                        
+                        task.wait(0.3)
+                        
+                        VirtualInput:SendKeyEvent(true, "X", false, game)
+                        task.wait(0.1)
+                        VirtualInput:SendKeyEvent(false, "X", false, game)
+                        
+                        task.wait(0.3)
+                        
+                        VirtualInput:SendKeyEvent(true, "C", false, game)
+                        task.wait(0.1)
+                        VirtualInput:SendKeyEvent(false, "C", false, game)
+                    end
+                else
+                    FarmSystem.CurrentTarget = nil
                 end
-            else
-                print("[QUEST] ❌ NPC no encontrado: " .. (npcName or "Desconocido"))
-            end
-            
-            task.wait(3)
+            end)
         end
     end)
 end
 
 -- ============================================
--- INTERFAZ GRÁFICA DEL SISTEMA DE QUESTS
+-- SISTEMA DE TELEPORT
 -- ============================================
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "QuestSystemGUI"
-ScreenGui.Parent = game:GetService("CoreGui")
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 350, 0, 400)
-MainFrame.Position = UDim2.new(0, 20, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
-
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0, 10)
-Corner.Parent = MainFrame
-
--- Título
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 50)
-Title.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Text = "🍎 AUTO QUEST SYSTEM"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
-Title.Parent = MainFrame
-
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0, 10)
-TitleCorner.Parent = Title
-
--- Botón principal
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Size = UDim2.new(0.9, 0, 0, 45)
-ToggleButton.Position = UDim2.new(0.05, 0, 0, 70)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleButton.Text = "▶️ INICIAR AUTO QUEST"
-ToggleButton.Font = Enum.Font.GothamBold
-ToggleButton.TextSize = 16
-ToggleButton.Parent = MainFrame
-
-local ButtonCorner = Instance.new("UICorner")
-ButtonCorner.CornerRadius = UDim.new(0, 8)
-ButtonCorner.Parent = ToggleButton
-
--- Panel de información
-local InfoFrame = Instance.new("Frame")
-InfoFrame.Size = UDim2.new(0.9, 0, 0, 200)
-InfoFrame.Position = UDim2.new(0.05, 0, 0, 130)
-InfoFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-InfoFrame.Parent = MainFrame
-
-local InfoCorner = Instance.new("UICorner")
-InfoCorner.CornerRadius = UDim.new(0, 8)
-InfoCorner.Parent = InfoFrame
-
--- Labels de información
-local QuestLabel = Instance.new("TextLabel")
-QuestLabel.Size = UDim2.new(1, -20, 0, 30)
-QuestLabel.Position = UDim2.new(0, 10, 0, 10)
-QuestLabel.BackgroundTransparency = 1
-QuestLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-QuestLabel.Text = "Quest Actual: Ninguna"
-QuestLabel.Font = Enum.Font.Gotham
-QuestLabel.TextSize = 14
-QuestLabel.TextXAlignment = Enum.TextXAlignment.Left
-QuestLabel.Parent = InfoFrame
-
-local NPCLabel = Instance.new("TextLabel")
-NPCLabel.Size = UDim2.new(1, -20, 0, 30)
-NPCLabel.Position = UDim2.new(0, 10, 0, 50)
-NPCLabel.BackgroundTransparency = 1
-NPCLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-NPCLabel.Text = "NPC: ---"
-NPCLabel.Font = Enum.Font.Gotham
-NPCLabel.TextSize = 14
-NPCLabel.TextXAlignment = Enum.TextXAlignment.Left
-NPCLabel.Parent = InfoFrame
-
-local TaskLabel = Instance.new("TextLabel")
-TaskLabel.Size = UDim2.new(1, -20, 0, 30)
-TaskLabel.Position = UDim2.new(0, 10, 0, 90)
-TaskLabel.BackgroundTransparency = 1
-TaskLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TaskLabel.Text = "Tarea: ---"
-TaskLabel.Font = Enum.Font.Gotham
-TaskLabel.TextSize = 14
-TaskLabel.TextXAlignment = Enum.TextXAlignment.Left
-TaskLabel.Parent = InfoFrame
-
-local ProgressLabel = Instance.new("TextLabel")
-ProgressLabel.Size = UDim2.new(1, -20, 0, 30)
-ProgressLabel.Position = UDim2.new(0, 10, 0, 130)
-ProgressLabel.BackgroundTransparency = 1
-ProgressLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-ProgressLabel.Text = "Progreso: 0/0"
-ProgressLabel.Font = Enum.Font.Gotham
-ProgressLabel.TextSize = 14
-ProgressLabel.TextXAlignment = Enum.TextXAlignment.Left
-ProgressLabel.Parent = InfoFrame
-
--- Barra de progreso
-local ProgressBar = Instance.new("Frame")
-ProgressBar.Size = UDim2.new(1, -20, 0, 10)
-ProgressBar.Position = UDim2.new(0, 10, 0, 165)
-ProgressBar.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-ProgressBar.Parent = InfoFrame
-
-local ProgressFill = Instance.new("Frame")
-ProgressFill.Size = UDim2.new(0, 0, 1, 0)
-ProgressFill.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
-ProgressFill.Parent = ProgressBar
-
-local ProgressCorner = Instance.new("UICorner")
-ProgressCorner.CornerRadius = UDim.new(1, 0)
-ProgressCorner.Parent = ProgressBar
-
-local ProgressFillCorner = Instance.new("UICorner")
-ProgressFillCorner.CornerRadius = UDim.new(1, 0)
-ProgressFillCorner.Parent = ProgressFill
-
--- Botón de cerrar
-local CloseButton = Instance.new("TextButton")
-CloseButton.Size = UDim2.new(0, 30, 0, 30)
-CloseButton.Position = UDim2.new(1, -35, 0, 10)
-CloseButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.Text = "X"
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextSize = 14
-CloseButton.Parent = MainFrame
-
--- Configurar controles
-ToggleButton.MouseButton1Click:Connect(function()
-    QuestSystem.Enabled = not QuestSystem.Enabled
+local TeleportSystem = {
+    Islands = {
+        ["Starter Island"] = Vector3.new(100, 50, 100),
+        ["Jungle Island"] = Vector3.new(-1500, 60, 700),
+        ["Pirate Village"] = Vector3.new(-1100, 50, 3900),
+        ["Desert Island"] = Vector3.new(1000, 50, 2000),
+        ["Snow Island"] = Vector3.new(1100, 150, -1200),
+        ["Marine Fortress"] = Vector3.new(-4800, 20, 2800),
+        ["Sky Island"] = Vector3.new(4600, 1400, -800),
+        ["Prison"] = Vector3.new(4800, 10, -800),
+        ["Fountain City"] = Vector3.new(5127, 59, 4065),
+        ["Colosseum"] = Vector3.new(-1836, 44, 1369),
+        ["Magma Village"] = Vector3.new(-5319, 12, 8515),
+        ["Underwater City"] = Vector3.new(61163, 11, 1819),
+        ["Ice Castle"] = Vector3.new(6148, 294, -5951),
+        ["Hot and Cold"] = Vector3.new(-5530, 15, -6768),
+        ["Cursed Ship"] = Vector3.new(923, 125, 32871),
+        ["Ice Cream Island"] = Vector3.new(-818, 66, -10964),
+        ["Cake Island"] = Vector3.new(-1888, 13, -11557),
+        ["Cafe"] = Vector3.new(-383, 73, 297),
+        ["Safe Zone"] = Vector3.new(0, 50, 0)
+    },
     
-    if QuestSystem.Enabled then
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-        ToggleButton.Text = "⏸️ DETENER AUTO QUEST"
-        
-        -- Iniciar sistema
-        StartQuestSystem()
-        
-        print("========================================")
-        print("🍎 AUTO QUEST SYSTEM ACTIVADO")
-        print("========================================")
+    Bosses = {
+        ["Bobby"] = Vector3.new(-1131, 14, 4080),
+        ["Yeti"] = Vector3.new(1185, 106, -1518),
+        ["Vice Admiral"] = Vector3.new(-4807, 21, 4360),
+        ["Swan"] = Vector3.new(5230, 4, 749),
+        ["Magma Admiral"] = Vector3.new(-5694, 18, 8735),
+        ["Fishman Lord"] = Vector3.new(61350, 31, 1095),
+        ["Wysper"] = Vector3.new(-7927, 5551, -637),
+        ["Thunder God"] = Vector3.new(-7751, 5607, -2315),
+        ["Cyborg"] = Vector3.new(6138, 10, 3939),
+        ["Diamond"] = Vector3.new(-1569, 199, -31),
+        ["Jeremy"] = Vector3.new(2316, 449, 787),
+        ["Fajita"] = Vector3.new(-2086, 73, -4208),
+        ["Smoke Admiral"] = Vector3.new(-5078, 24, -5352),
+        ["Ice Admiral"] = Vector3.new(6473, 297, -6944),
+        ["Tide Keeper"] = Vector3.new(-3711, 77, -11469),
+        ["Stone"] = Vector3.new(-1049, 40, 6791),
+        ["Hydra Leader"] = Vector3.new(5836, 1019, -83),
+        ["Kilo Admiral"] = Vector3.new(2904, 509, -7349),
+        ["Captain Elephant"] = Vector3.new(-13393, 319, -8423),
+        ["Beautiful Pirate"] = Vector3.new(5370, 22, -89),
+        ["Cake Queen"] = Vector3.new(-710, 382, -11150)
+    }
+}
+
+local function TeleportTo(position)
+    if not HumanoidRootPart then return end
+    
+    HumanoidRootPart.CFrame = CFrame.new(position)
+end
+
+-- ============================================
+-- SISTEMA DE VISUAL
+-- ============================================
+
+local function UpdateVisuals()
+    -- FullBright
+    if RedzHub.FullBright then
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 100000
+        Lighting.GlobalShadows = false
     else
-        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-        ToggleButton.Text = "▶️ INICIAR AUTO QUEST"
+        Lighting.Brightness = 1
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 1000
+        Lighting.GlobalShadows = true
+    end
+    
+    -- No Fog
+    if RedzHub.NoFog then
+        Lighting.FogEnd = 100000
+    end
+end
+
+-- ============================================
+-- SISTEMA DE PLAYER
+-- ============================================
+
+local function UpdatePlayerStats()
+    Humanoid.WalkSpeed = RedzHub.WalkSpeed
+    Humanoid.JumpPower = RedzHub.JumpPower
+    
+    -- Inf Energy
+    if RedzHub.InfEnergy then
+        if Character:FindFirstChild("Energy") then
+            Character.Energy.Value = 100
+        end
+    end
+    
+    -- No Clip
+    if RedzHub.NoClip then
+        RunService.Stepped:Connect(function()
+            pcall(function()
+                for _, part in pairs(Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end)
+        end)
+    end
+end
+
+-- ============================================
+-- SISTEMA ANTI-AFK
+-- ============================================
+
+if RedzHub.AntiAFK then
+    local VirtualUser = game:GetService("VirtualUser")
+    Player.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new(0, 0))
+    end)
+end
+
+-- ============================================
+-- INTERFAZ PRINCIPAL REDZ HUB
+-- ============================================
+
+local function CreateMainUI()
+    local CoreGui = game:GetService("CoreGui")
+    
+    -- Eliminar UI anterior si existe
+    if CoreGui:FindFirstChild("RedzHubMain") then
+        CoreGui.RedzHubMain:Destroy()
+    end
+    
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "RedzHubMain"
+    ScreenGui.Parent = CoreGui
+    
+    -- Marco principal
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.new(0, 500, 0, 600)
+    MainFrame.Position = UDim2.new(0.5, -250, 0.5, -300)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Parent = ScreenGui
+    
+    -- Esquinas redondeadas
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 12)
+    Corner.Parent = MainFrame
+    
+    -- Título
+    local Title = Instance.new("TextLabel")
+    Title.Name = "Title"
+    Title.Size = UDim2.new(1, 0, 0, 50)
+    Title.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    Title.TextColor3 = Color3.fromRGB(255, 50, 50)
+    Title.Text = "🔥 REDZ HUB v" .. RedzHub.Version
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 20
+    Title.Parent = MainFrame
+    
+    local TitleCorner = Instance.new("UICorner")
+    TitleCorner.CornerRadius = UDim.new(0, 12)
+    TitleCorner.Parent = Title
+    
+    -- Botón cerrar
+    local CloseButton = Instance.new("TextButton")
+    CloseButton.Name = "CloseButton"
+    CloseButton.Size = UDim2.new(0, 40, 0, 40)
+    CloseButton.Position = UDim2.new(1, -45, 0, 5)
+    CloseButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseButton.Text = "X"
+    CloseButton.Font = Enum.Font.GothamBold
+    CloseButton.TextSize = 18
+    CloseButton.Parent = Title
+    
+    CloseButton.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+    
+    -- Contenedor de tabs
+    local TabsContainer = Instance.new("Frame")
+    TabsContainer.Name = "TabsContainer"
+    TabsContainer.Size = UDim2.new(1, 0, 0, 40)
+    TabsContainer.Position = UDim2.new(0, 0, 0, 50)
+    TabsContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    TabsContainer.Parent = MainFrame
+    
+    -- Tabs
+    local Tabs = {"Auto Farm", "Player", "Combat", "Visual", "Teleport", "Misc"}
+    local CurrentTab = "Auto Farm"
+    
+    -- Crear botones de tabs
+    for i, tabName in ipairs(Tabs) do
+        local TabButton = Instance.new("TextButton")
+        TabButton.Name = tabName .. "Tab"
+        TabButton.Size = UDim2.new(1/#Tabs, 0, 1, 0)
+        TabButton.Position = UDim2.new((i-1)/#Tabs, 0, 0, 0)
+        TabButton.BackgroundColor3 = tabName == CurrentTab and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(40, 40, 50)
+        TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TabButton.Text = tabName
+        TabButton.Font = Enum.Font.Gotham
+        TabButton.TextSize = 12
+        TabButton.Parent = TabsContainer
         
-        -- Detener sistema
-        if QuestThread then
-            task.cancel(QuestThread)
+        TabButton.MouseButton1Click:Connect(function()
+            CurrentTab = tabName
+            -- Actualizar colores de todos los tabs
+            for _, tName in ipairs(Tabs) do
+                local btn = TabsContainer:FindFirstChild(tName .. "Tab")
+                if btn then
+                    btn.BackgroundColor3 = tName == CurrentTab and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(40, 40, 50)
+                end
+            end
+            UpdateTabContent()
+        end)
+    end
+    
+    -- Contenido
+    local ContentFrame = Instance.new("Frame")
+    ContentFrame.Name = "ContentFrame"
+    ContentFrame.Size = UDim2.new(1, 0, 1, -90)
+    ContentFrame.Position = UDim2.new(0, 0, 0, 90)
+    ContentFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    ContentFrame.Parent = MainFrame
+    
+    -- Scrolling frame
+    local ScrollFrame = Instance.new("ScrollingFrame")
+    ScrollFrame.Name = "ScrollFrame"
+    ScrollFrame.Size = UDim2.new(1, -10, 1, -10)
+    ScrollFrame.Position = UDim2.new(0, 5, 0, 5)
+    ScrollFrame.BackgroundTransparency = 1
+    ScrollFrame.ScrollBarThickness = 5
+    ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 50, 50)
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 800)
+    ScrollFrame.Parent = ContentFrame
+    
+    -- Función para crear elementos
+    local elementY = 10
+    local function CreateToggle(name, configKey, description)
+        local toggleFrame = Instance.new("Frame")
+        toggleFrame.Name = name .. "Frame"
+        toggleFrame.Size = UDim2.new(1, -20, 0, 35)
+        toggleFrame.Position = UDim2.new(0, 10, 0, elementY)
+        toggleFrame.BackgroundTransparency = 1
+        toggleFrame.Parent = ScrollFrame
+        
+        local toggleButton = Instance.new("TextButton")
+        toggleButton.Name = name .. "Toggle"
+        toggleButton.Size = UDim2.new(0, 120, 0, 30)
+        toggleButton.Position = UDim2.new(0, 0, 0, 0)
+        toggleButton.BackgroundColor3 = RedzHub[configKey] and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+        toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        toggleButton.Text = name .. ": " .. (RedzHub[configKey] and "ON" or "OFF")
+        toggleButton.Font = Enum.Font.Gotham
+        toggleButton.TextSize = 12
+        toggleButton.Parent = toggleFrame
+        
+        local descLabel = Instance.new("TextLabel")
+        descLabel.Name = name .. "Desc"
+        descLabel.Size = UDim2.new(0, 340, 0, 30)
+        descLabel.Position = UDim2.new(0, 130, 0, 0)
+        descLabel.BackgroundTransparency = 1
+        descLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+        descLabel.Text = description
+        descLabel.Font = Enum.Font.Gotham
+        descLabel.TextSize = 11
+        descLabel.TextXAlignment = Enum.TextXAlignment.Left
+        descLabel.Parent = toggleFrame
+        
+        toggleButton.MouseButton1Click:Connect(function()
+            RedzHub[configKey] = not RedzHub[configKey]
+            toggleButton.BackgroundColor3 = RedzHub[configKey] and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+            toggleButton.Text = name .. ": " .. (RedzHub[configKey] and "ON" or "OFF")
+            
+            -- Ejecutar funciones
+            if configKey == "AutoFarm" then
+                if RedzHub.AutoFarm then
+                    StartAutoFarm()
+                else
+                    FarmSystem.Farming = false
+                    if FarmSystem.Thread then
+                        task.cancel(FarmSystem.Thread)
+                    end
+                end
+            elseif configKey == "FullBright" or configKey == "NoFog" then
+                UpdateVisuals()
+            elseif configKey == "WalkSpeed" or configKey == "JumpPower" or configKey == "InfEnergy" or configKey == "NoClip" then
+                UpdatePlayerStats()
+            end
+        end)
+        
+        elementY = elementY + 40
+    end
+    
+    local function CreateSlider(name, configKey, minVal, maxVal, description)
+        local sliderFrame = Instance.new("Frame")
+        sliderFrame.Name = name .. "SliderFrame"
+        sliderFrame.Size = UDim2.new(1, -20, 0, 50)
+        sliderFrame.Position = UDim2.new(0, 10, 0, elementY)
+        sliderFrame.BackgroundTransparency = 1
+        sliderFrame.Parent = ScrollFrame
+        
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Name = name .. "Label"
+        nameLabel.Size = UDim2.new(1, 0, 0, 20)
+        nameLabel.Position = UDim2.new(0, 0, 0, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.Text = name .. ": " .. RedzHub[configKey]
+        nameLabel.Font = Enum.Font.Gotham
+        nameLabel.TextSize = 12
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.Parent = sliderFrame
+        
+        local slider = Instance.new("Frame")
+        slider.Name = name .. "Slider"
+        slider.Size = UDim2.new(1, 0, 0, 20)
+        slider.Position = UDim2.new(0, 0, 0, 25)
+        slider.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+        slider.BorderSizePixel = 0
+        slider.Parent = sliderFrame
+        
+        local fill = Instance.new("Frame")
+        fill.Name = name .. "Fill"
+        fill.Size = UDim2.new((RedzHub[configKey] - minVal) / (maxVal - minVal), 0, 1, 0)
+        fill.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        fill.BorderSizePixel = 0
+        fill.Parent = slider
+        
+        -- Interacción
+        local dragging = false
+        slider.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+            end
+        end)
+        
+        slider.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+            end
+        end)
+        
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                local pos = input.Position
+                local relative = slider.AbsolutePosition
+                local x = math.clamp(pos.X - relative.X, 0, slider.AbsoluteSize.X)
+                local percent = x / slider.AbsoluteSize.X
+                local value = math.floor(minVal + (maxVal - minVal) * percent)
+                
+                fill.Size = UDim2.new(percent, 0, 1, 0)
+                nameLabel.Text = name .. ": " .. value
+                RedzHub[configKey] = value
+                
+                UpdatePlayerStats()
+            end
+        end)
+        
+        elementY = elementY + 60
+    end
+    
+    -- Función para actualizar contenido
+    local function UpdateTabContent()
+        -- Limpiar contenido anterior
+        for _, child in pairs(ScrollFrame:GetChildren()) do
+            if child:IsA("Frame") then
+                child:Destroy()
+            end
         end
         
-        print("🍎 AUTO QUEST SYSTEM DETENIDO")
+        elementY = 10
+        
+        if CurrentTab == "Auto Farm" then
+            CreateToggle("Auto Farm", "AutoFarm", "Farm automático de NPCs")
+            CreateToggle("Auto Quest", "AutoQuest", "Completar quests automáticamente")
+            CreateToggle("Auto Boss", "AutoBoss", "Farmear bosses automáticamente")
+            CreateToggle("Auto Sea Beast", "AutoSeaBeast", "Farmear Sea Beasts automáticamente")
+            CreateToggle("Auto Collect", "AutoCollect", "Recoger frutas y cofres automáticamente")
+            CreateToggle("Auto Sell", "AutoSell", "Vender items automáticamente")
+            CreateSlider("Farm Distance", "FarmDistance", 10, 200, "Distancia máxima para farmear")
+            
+        elseif CurrentTab == "Player" then
+            CreateSlider("Walk Speed", "WalkSpeed", 16, 500, "Velocidad de movimiento")
+            CreateSlider("Jump Power", "JumpPower", 50, 500, "Altura del salto")
+            CreateSlider("Fly Speed", "FlySpeed", 50, 500, "Velocidad de vuelo")
+            CreateToggle("Inf Energy", "InfEnergy", "Energía infinita")
+            CreateToggle("No Clip", "NoClip", "Atravesar paredes y objetos")
+            CreateToggle("God Mode", "GodMode", "Modo invencible (experimental)")
+            
+        elseif CurrentTab == "Combat" then
+            CreateToggle("Auto Click", "AutoClick", "Click automático cada 0.1s")
+            CreateToggle("Auto Skill", "AutoSkill", "Usar habilidades automáticamente")
+            CreateToggle("Fast Attack", "FastAttack", "Ataque rápido sin delay")
+            CreateToggle("Silent Aim", "SilentAim", "Aim automático (silencioso)")
+            CreateToggle("Aim Assist", "AimAssist", "Asistencia de aim")
+            CreateToggle("No Cooldown", "NoCooldown", "Sin cooldown en habilidades")
+            
+        elseif CurrentTab == "Visual" then
+            CreateToggle("Full Bright", "FullBright", "Iluminación máxima en el mapa")
+            CreateToggle("No Fog", "NoFog", "Remover niebla del mapa")
+            CreateToggle("ESP Players", "EspPlayers", "Ver jugadores a través de paredes")
+            CreateToggle("ESP NPCs", "EspNPCs", "Ver NPCs a través de paredes")
+            CreateToggle("ESP Chests", "EspChests", "Ver cofres a través de paredes")
+            CreateToggle("Tracers", "Tracers", "Mostrar líneas hacia jugadores")
+            
+        elseif CurrentTab == "Teleport" then
+            -- Botones de teleport a islas
+            local islands = {"Starter Island", "Jungle Island", "Pirate Village", "Desert Island", "Snow Island", "Marine Fortress", "Safe Zone"}
+            
+            for _, island in ipairs(islands) do
+                local button = Instance.new("TextButton")
+                button.Name = island .. "Button"
+                button.Size = UDim2.new(1, -20, 0, 35)
+                button.Position = UDim2.new(0, 10, 0, elementY)
+                button.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                button.TextColor3 = Color3.fromRGB(255, 255, 255)
+                button.Text = "📍 " .. island
+                button.Font = Enum.Font.Gotham
+                button.TextSize = 12
+                button.Parent = ScrollFrame
+                
+                button.MouseButton1Click:Connect(function()
+                    TeleportTo(TeleportSystem.Islands[island])
+                end)
+                
+                elementY = elementY + 40
+            end
+            
+            -- Separador
+            elementY = elementY + 20
+            
+            -- Teleport a bosses
+            local bosses = {"Bobby", "Yeti", "Vice Admiral", "Swan", "Magma Admiral", "Fishman Lord", "Cyborg"}
+            
+            for _, boss in ipairs(bosses) do
+                local button = Instance.new("TextButton")
+                button.Name = boss .. "Button"
+                button.Size = UDim2.new(1, -20, 0, 35)
+                button.Position = UDim2.new(0, 10, 0, elementY)
+                button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+                button.TextColor3 = Color3.fromRGB(255, 255, 255)
+                button.Text = "⚔️ " .. boss
+                button.Font = Enum.Font.Gotham
+                button.TextSize = 12
+                button.Parent = ScrollFrame
+                
+                button.MouseButton1Click:Connect(function()
+                    TeleportTo(TeleportSystem.Bosses[boss])
+                end)
+                
+                elementY = elementY + 40
+            end
+            
+        elseif CurrentTab == "Misc" then
+            CreateToggle("Anti AFK", "AntiAFK", "Evitar desconexión por inactividad")
+            CreateToggle("Auto Haki", "AutoHaki", "Activar Haki automáticamente")
+            CreateToggle("Auto Race", "AutoRace", "Mejorar race automáticamente")
+            CreateToggle("Auto Buy Fragments", "AutoBuyFragments", "Comprar fragments automáticamente")
+            CreateToggle("Hide Name", "HideName", "Ocultar tu nombre")
+            CreateToggle("Safe Mode", "SafeMode", "Modo seguro anti-ban")
+        end
+        
+        ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, elementY + 20)
     end
-end)
+    
+    -- Inicializar contenido
+    UpdateTabContent()
+    
+    -- Hotkey para abrir/cerrar
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if input.KeyCode == Enum.KeyCode.RightControl then
+            MainFrame.Visible = not MainFrame.Visible
+        end
+    end)
+    
+    return ScreenGui
+end
 
-CloseButton.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
+-- ============================================
+-- INICIALIZACIÓN
+-- ============================================
 
--- Hotkey para abrir/cerrar
-local UserInputService = game:GetService("UserInputService")
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if input.KeyCode == Enum.KeyCode.P then
-        MainFrame.Visible = not MainFrame.Visible
-    end
-end)
+-- Mostrar warning
+ShowWarning()
 
+-- Esperar un momento
+task.wait(2)
+
+-- Crear UI principal
+local MainUI = CreateMainUI()
+
+-- Actualizar estadísticas iniciales
+UpdatePlayerStats()
+UpdateVisuals()
+
+-- Mensaje de inicio
 print("========================================")
-print("🍎 AUTO QUEST SYSTEM CARGADO")
-print("🎮 Controles:")
-print("• Botón: Activar/Desactivar")
-print("• Tecla P: Mostrar/Ocultar menú")
+print("🔥 REDZ HUB v" .. RedzHub.Version .. " LOADED")
+print("🎮 Blox Fruits Ultimate Hub")
+print("👤 Player: " .. Player.Name)
+print("📌 Hotkey: RIGHT CONTROL")
 print("========================================")
+
+RedzHub.Loaded = true
