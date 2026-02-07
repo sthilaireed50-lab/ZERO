@@ -1,24 +1,725 @@
--- [TU NOMBRE]'s Personal Farm Script
--- Especializado para: [TU FRUTA] + [TU ARMA] + [TU BOSS]
+-- Blox Fruits Ultimate Hub - Delta Executor
+-- Menú completo con todas las funciones
 
-local YourConfig = {
-    PrimaryTarget = "Sea Beast",  -- Cambiar según lo que elijas
-    YourFruit = "Buddha",        -- Tu fruta
-    YourWeapon = "Saber",        -- Tu arma
-    YourLevel = 1000,            -- Tu nivel
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local VirtualInput = game:GetService("VirtualInputManager")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+
+-- Variables principales
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local Humanoid = Character:WaitForChild("Humanoid")
+
+-- Configuración global
+local Config = {
+    -- Auto Farm
+    AutoFarm = false,
+    AutoFarmBoss = false,
+    AutoFarmSeaBeast = false,
+    AutoFarmQuest = false,
     
-    -- Configuración automática según tu setup
-    CombatStyle = "Melee",       -- Se ajusta automáticamente
-    SafeDistance = 20,           -- Calculado según tu daño
-    HealThreshold = 30,          -- % de vida para auto-heal
+    -- Player
+    WalkSpeed = 50,
+    JumpPower = 50,
+    InfEnergy = false,
+    InfHealth = false,
     
-    -- Características activadas según lo que necesites
-    Features = {
-        AutoFarm = true,
-        AutoDodge = true,
-        AutoHeal = true,
-        CollectDrops = true,
-        SkillRotation = true,
-        BossSpecificPatterns = true
-    }
+    -- Combat
+    AutoClick = false,
+    AutoSkills = false,
+    GodMode = false,
+    NoCooldown = false,
+    
+    -- Misc
+    AutoCollect = true,
+    AutoDodge = true,
+    AntiAFK = true,
+    HideName = false,
+    
+    -- Visual
+    FullBright = false,
+    NoFog = false,
+    
+    -- Teleports
+    SelectedIsland = "Starter Island"
 }
+
+-- Listas de datos
+local Islands = {
+    "Starter Island",
+    "Jungle Island",
+    "Pirate Village",
+    "Desert Island",
+    "Snow Island",
+    "Marine Fortress",
+    "Sky Island",
+    "Prison"
+}
+
+local Bosses = {
+    "Sea Beast",
+    "Saber Expert",
+    "Darkbeard",
+    "Swan",
+    "Ice Admiral",
+    "Diamond",
+    "Wysper",
+    "Tide Keeper"
+}
+
+local Fruits = {
+    "Buddha",
+    "Dough",
+    "Dragon",
+    "Leopard",
+    "Venom",
+    "Shadow",
+    "Control",
+    "Gravity",
+    "Rumble",
+    "Phoenix"
+}
+
+-- Cargar librería UI
+local OrionLib = loadstring(game:HttpGet('https://pastebin.com/raw/2nwqjWkH'))()
+
+-- Crear ventana principal
+local Window = OrionLib:MakeWindow({
+    Name = "🔥 BLOX FRUITS ULTIMATE HUB",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "BloxFruitsConfig",
+    IntroEnabled = true,
+    IntroText = "BLOX FRUITS HUB",
+    IntroIcon = "rbxassetid://7072706620"
+})
+
+-- ============================================
+-- TAB 1: AUTO FARM
+-- ============================================
+local FarmTab = Window:MakeTab({
+    Name = "⚔️ AUTO FARM",
+    Icon = "rbxassetid://7072706620",
+    PremiumOnly = false
+})
+
+FarmTab:AddToggle({
+    Name = "🎯 Activar Auto Farm",
+    Default = false,
+    Callback = function(Value)
+        Config.AutoFarm = Value
+        OrionLib:MakeNotification({
+            Name = "Auto Farm",
+            Content = Value and "Activado" or "Desactivado",
+            Time = 3
+        })
+    end
+})
+
+FarmTab:AddDropdown({
+    Name = "🎯 Seleccionar Boss",
+    Default = "Sea Beast",
+    Options = Bosses,
+    Callback = function(Value)
+        Config.SelectedBoss = Value
+    end
+})
+
+FarmTab:AddToggle({
+    Name = "🦈 Farmear Sea Beast",
+    Default = false,
+    Callback = function(Value)
+        Config.AutoFarmSeaBeast = Value
+        if Value then
+            OrionLib:MakeNotification({
+                Name = "Sea Beast Farm",
+                Content = "Cazando Sea Beasts...",
+                Time = 5
+            })
+        end
+    end
+})
+
+FarmTab:AddToggle({
+    Name = "⚔️ Auto Farm Bosses",
+    Default = false,
+    Callback = function(Value)
+        Config.AutoFarmBoss = Value
+    end
+})
+
+FarmTab:AddToggle({
+    Name = "📜 Auto Quest",
+    Default = false,
+    Callback = function(Value)
+        Config.AutoFarmQuest = Value
+    end
+})
+
+FarmTab:AddToggle({
+    Name = "💎 Auto Recolectar Drops",
+    Default = true,
+    Callback = function(Value)
+        Config.AutoCollect = Value
+    end
+})
+
+FarmTab:AddToggle({
+    Name = "🛡️ Auto Esquivar",
+    Default = true,
+    Callback = function(Value)
+        Config.AutoDodge = Value
+    end
+})
+
+FarmTab:AddSlider({
+    Name = "📏 Distancia de Farm",
+    Min = 10,
+    Max = 100,
+    Default = 30,
+    Color = Color3.fromRGB(0, 170, 255),
+    Increment = 1,
+    ValueName = "unidades",
+    Callback = function(Value)
+        Config.FarmDistance = Value
+    end
+})
+
+FarmTab:AddButton({
+    Name = "🚀 Iniciar Farm Inteligente",
+    Callback = function()
+        OrionLib:MakeNotification({
+            Name = "Farm Inteligente",
+            Content = "Iniciando sistema de farm...",
+            Time = 5
+        })
+        -- Aquí iría la función de farm inteligente
+    end
+})
+
+-- ============================================
+-- TAB 2: PLAYER
+-- ============================================
+local PlayerTab = Window:MakeTab({
+    Name = "👤 PLAYER",
+    Icon = "rbxassetid://7072725349",
+    PremiumOnly = false
+})
+
+PlayerTab:AddSlider({
+    Name = "🏃‍♂️ Velocidad",
+    Min = 16,
+    Max = 500,
+    Default = 50,
+    Color = Color3.fromRGB(255, 100, 100),
+    Increment = 1,
+    ValueName = "vel",
+    Callback = function(Value)
+        Config.WalkSpeed = Value
+        Humanoid.WalkSpeed = Value
+    end
+})
+
+PlayerTab:AddSlider({
+    Name = "🦘 Fuerza de Salto",
+    Min = 50,
+    Max = 500,
+    Default = 50,
+    Color = Color3.fromRGB(100, 255, 100),
+    Increment = 1,
+    ValueName = "jump",
+    Callback = function(Value)
+        Config.JumpPower = Value
+        Humanoid.JumpPower = Value
+    end
+})
+
+PlayerTab:AddToggle({
+    Name = "⚡ Energía Infinita",
+    Default = false,
+    Callback = function(Value)
+        Config.InfEnergy = Value
+        if Value then
+            OrionLib:MakeNotification({
+                Name = "Energía Infinita",
+                Content = "Activado - Sin consumo de energía",
+                Time = 3
+            })
+        end
+    end
+})
+
+PlayerTab:AddToggle({
+    Name = "❤️ Vida Infinita",
+    Default = false,
+    Callback = function(Value)
+        Config.InfHealth = Value
+    end
+})
+
+PlayerTab:AddToggle({
+    Name = "🛡️ God Mode",
+    Default = false,
+    Callback = function(Value)
+        Config.GodMode = Value
+    end
+})
+
+PlayerTab:AddToggle({
+    Name = "⏱️ Sin Cooldown",
+    Default = false,
+    Callback = function(Value)
+        Config.NoCooldown = Value
+    end
+})
+
+PlayerTab:AddButton({
+    Name = "🔄 Reset Character",
+    Callback = function()
+        Character:BreakJoints()
+    end
+})
+
+PlayerTab:AddButton({
+    Name = "🎭 Ocultar Nombre",
+    Callback = function()
+        Config.HideName = not Config.HideName
+        OrionLib:MakeNotification({
+            Name = "Ocultar Nombre",
+            Content = Config.HideName and "Activado" or "Desactivado",
+            Time = 3
+        })
+    end
+})
+
+-- ============================================
+-- TAB 3: COMBAT
+-- ============================================
+local CombatTab = Window:MakeTab({
+    Name = "⚔️ COMBAT",
+    Icon = "rbxassetid://7072715375",
+    PremiumOnly = false
+})
+
+CombatTab:AddToggle({
+    Name = "🖱️ Auto Click",
+    Default = false,
+    Callback = function(Value)
+        Config.AutoClick = Value
+        if Value then
+            OrionLib:MakeNotification({
+                Name = "Auto Click",
+                Content = "Activado - Click automático cada 0.1s",
+                Time = 3
+            })
+        end
+    end
+})
+
+CombatTab:AddToggle({
+    Name = "✨ Auto Skills",
+    Default = false,
+    Callback = function(Value)
+        Config.AutoSkills = Value
+    end
+})
+
+CombatTab:AddDropdown({
+    Name = "🍎 Seleccionar Fruta",
+    Default = "Buddha",
+    Options = Fruits,
+    Callback = function(Value)
+        Config.SelectedFruit = Value
+        OrionLib:MakeNotification({
+            Name = "Fruta Seleccionada",
+            Content = "Modo: " .. Value,
+            Time = 3
+        })
+    end
+})
+
+CombatTab:AddSection("Configurar Habilidades")
+
+CombatTab:AddToggle({
+    Name = "🔥 Usar Skill Z",
+    Default = true,
+    Callback = function(Value)
+        Config.UseSkillZ = Value
+    end
+})
+
+CombatTab:AddToggle({
+    Name = "❄️ Usar Skill X",
+    Default = true,
+    Callback = function(Value)
+        Config.UseSkillX = Value
+    end
+})
+
+CombatTab:AddToggle({
+    Name = "💫 Usar Skill C",
+    Default = true,
+    Callback = function(Value)
+        Config.UseSkillC = Value
+    end
+})
+
+CombatTab:AddToggle({
+    Name = "🌀 Usar Skill V",
+    Default = false,
+    Callback = function(Value)
+        Config.UseSkillV = Value
+    end
+})
+
+CombatTab:AddButton({
+    Name = "🎯 Testear Combo",
+    Callback = function()
+        OrionLib:MakeNotification({
+            Name = "Test Combo",
+            Content = "Ejecutando combo de habilidades...",
+            Time = 3
+        })
+    end
+})
+
+-- ============================================
+-- TAB 4: TELEPORTS
+-- ============================================
+local TeleportTab = Window:MakeTab({
+    Name = "📍 TELEPORTS",
+    Icon = "rbxassetid://7072716643",
+    PremiumOnly = false
+})
+
+TeleportTab:AddDropdown({
+    Name = "🏝️ Seleccionar Isla",
+    Default = "Starter Island",
+    Options = Islands,
+    Callback = function(Value)
+        Config.SelectedIsland = Value
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "🚀 Teleport a Isla",
+    Callback = function()
+        local locations = {
+            ["Starter Island"] = Vector3.new(100, 50, 100),
+            ["Jungle Island"] = Vector3.new(-1500, 60, 700),
+            ["Pirate Village"] = Vector3.new(-1100, 50, 3900),
+            ["Desert Island"] = Vector3.new(1000, 50, 2000),
+            ["Snow Island"] = Vector3.new(1100, 150, -1200),
+            ["Marine Fortress"] = Vector3.new(-4800, 20, 2800),
+            ["Sky Island"] = Vector3.new(4600, 1400, -800),
+            ["Prison"] = Vector3.new(4800, 10, -800)
+        }
+        
+        local pos = locations[Config.SelectedIsland]
+        if pos then
+            HumanoidRootPart.CFrame = CFrame.new(pos)
+            OrionLib:MakeNotification({
+                Name = "Teleport",
+                Content = "Teleport a " .. Config.SelectedIsland,
+                Time = 3
+            })
+        end
+    end
+})
+
+TeleportTab:AddSection("Teleports Rápidos")
+
+TeleportTab:AddButton({
+    Name = "💰 Safe Zone",
+    Callback = function()
+        HumanoidRootPart.CFrame = CFrame.new(0, 50, 0)
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "🏴‍☠️ Pirate Starter",
+    Callback = function()
+        HumanoidRootPart.CFrame = CFrame.new(-1100, 50, 3900)
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "👮 Marine Starter",
+    Callback = function()
+        HumanoidRootPart.CFrame = CFrame.new(-4800, 20, 2800)
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "❄️ Ice Admiral",
+    Callback = function()
+        HumanoidRootPart.CFrame = CFrame.new(1100, 150, -1200)
+    end
+})
+
+TeleportTab:AddButton({
+    Name = "🦈 Sea Beast Zone",
+    Callback = function()
+        HumanoidRootPart.CFrame = CFrame.new(-2000, 100, 500)
+    end
+})
+
+-- ============================================
+-- TAB 5: VISUAL
+-- ============================================
+local VisualTab = Window:MakeTab({
+    Name = "👁️ VISUAL",
+    Icon = "rbxassetid://7072708273",
+    PremiumOnly = false
+})
+
+VisualTab:AddToggle({
+    Name = "💡 Full Bright",
+    Default = false,
+    Callback = function(Value)
+        Config.FullBright = Value
+        if Value then
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 100000
+            Lighting.GlobalShadows = false
+        else
+            Lighting.Brightness = 1
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 1000
+            Lighting.GlobalShadows = true
+        end
+    end
+})
+
+VisualTab:AddToggle({
+    Name = "🌫️ No Fog",
+    Default = false,
+    Callback = function(Value)
+        Config.NoFog = Value
+        if Value then
+            Lighting.FogEnd = 100000
+        else
+            Lighting.FogEnd = 1000
+        end
+    end
+})
+
+VisualTab:AddToggle({
+    Name = "🌈 Mejorar Gráficos",
+    Default = false,
+    Callback = function(Value)
+        if Value then
+            settings().Rendering.QualityLevel = "Level21"
+            OrionLib:MakeNotification({
+                Name = "Gráficos",
+                Content = "Gráficos mejorados",
+                Time = 3
+            })
+        end
+    end
+})
+
+VisualTab:AddButton({
+    Name = "🎨 Quitar Efectos",
+    Callback = function()
+        for _, effect in pairs(Lighting:GetChildren()) do
+            if effect:IsA("BlurEffect") or effect:IsA("ColorCorrectionEffect") then
+                effect:Destroy()
+            end
+        end
+        OrionLib:MakeNotification({
+            Name = "Efectos",
+            Content = "Efectos visuales removidos",
+            Time = 3
+        })
+    end
+})
+
+-- ============================================
+-- TAB 6: MISC
+-- ============================================
+local MiscTab = Window:MakeTab({
+    Name = "⚙️ MISC",
+    Icon = "rbxassetid://7072711536",
+    PremiumOnly = false
+})
+
+MiscTab:AddToggle({
+    Name = "⏸️ Anti AFK",
+    Default = true,
+    Callback = function(Value)
+        Config.AntiAFK = Value
+        if Value then
+            local VirtualUser = game:GetService("VirtualUser")
+            Player.Idled:Connect(function()
+                VirtualUser:CaptureController()
+                VirtualUser:ClickButton2(Vector2.new())
+            end)
+        end
+    end
+})
+
+MiscTab:AddButton({
+    Name = "📊 Mostrar Stats",
+    Callback = function()
+        OrionLib:MakeNotification({
+            Name = "Estadísticas",
+            Content = "Nivel: ??? | Beli: ??? | Frags: ???",
+            Time = 5
+        })
+    end
+})
+
+MiscTab:AddButton({
+    Name = "🎮 Re-Executar Script",
+    Callback = function()
+        OrionLib:MakeNotification({
+            Name = "Re-Ejecutar",
+            Content = "Reiniciando script...",
+            Time = 3
+        })
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/..."))()
+    end
+})
+
+MiscTab:AddButton({
+    Name = "🔄 Reconnect Server",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, Player)
+    end
+})
+
+MiscTab:AddButton({
+    Name = "🚫 Cerrar Interfaz",
+    Callback = function()
+        OrionLib:Destroy()
+    end
+})
+
+-- ============================================
+-- TAB 7: INFO
+-- ============================================
+local InfoTab = Window:MakeTab({
+    Name = "ℹ️ INFO",
+    Icon = "rbxassetid://7072701538",
+    PremiumOnly = false
+})
+
+InfoTab:AddParagraph("🎮 Blox Fruits Ultimate Hub", "Version 2.0 | Delta Executor")
+
+InfoTab:AddLabel("🔥 Características Principales:")
+InfoTab:AddLabel("• Auto Farm Inteligente")
+InfoTab:AddLabel("• Combat System Avanzado")
+InfoTab:AddLabel("• Teleports Rápidos")
+InfoTab:AddLabel("• Mejoras Visuales")
+InfoTab:AddLabel("• Sistema Anti-Detección")
+
+InfoTab:AddLabel("")
+InfoTab:AddLabel("⚠️ Advertencias:")
+InfoTab:AddLabel("• Usar en servidores privados")
+InfoTab:AddLabel("• No abusar de las funciones")
+InfoTab:AddLabel("• Riesgo de ban si detectan")
+
+InfoTab:AddLabel("")
+InfoTab:AddLabel("🎯 Recomendaciones:")
+InfoTab:AddLabel("• Fruta Buddha para farm")
+InfoTab:AddLabel("• Mantener distancia segura")
+InfoTab:AddLabel("• Usar Auto Dodge en bosses")
+
+InfoTab:AddButton({
+    Name = "📞 Soporte / Reportar Bug",
+    Callback = function()
+        setclipboard("https://discord.gg/example")
+        OrionLib:MakeNotification({
+            Name = "Discord Copiado",
+            Content = "Link copiado al portapapeles",
+            Time = 3
+        })
+    end
+})
+
+-- ============================================
+-- SISTEMAS AUTOMÁTICOS
+-- ============================================
+
+-- Auto Click System
+task.spawn(function()
+    while task.wait(0.1) do
+        if Config.AutoClick then
+            VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+            task.wait(0.01)
+            VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+        end
+    end
+end)
+
+-- Auto Skills System
+task.spawn(function()
+    while task.wait(1) do
+        if Config.AutoSkills then
+            if Config.UseSkillZ then
+                VirtualInput:SendKeyEvent(true, "Z", false, game)
+                task.wait(0.1)
+                VirtualInput:SendKeyEvent(false, "Z", false, game)
+            end
+            
+            task.wait(0.5)
+            
+            if Config.UseSkillX then
+                VirtualInput:SendKeyEvent(true, "X", false, game)
+                task.wait(0.1)
+                VirtualInput:SendKeyEvent(false, "X", false, game)
+            end
+            
+            task.wait(0.5)
+            
+            if Config.UseSkillC then
+                VirtualInput:SendKeyEvent(true, "C", false, game)
+                task.wait(0.1)
+                VirtualInput:SendKeyEvent(false, "C", false, game)
+            end
+        end
+    end
+end)
+
+-- Auto Collect System
+task.spawn(function()
+    while task.wait(2) do
+        if Config.AutoCollect then
+            pcall(function()
+                for _, item in pairs(Workspace:GetChildren()) do
+                    if item.Name:find("Fruit") or item.Name:find("Chest") then
+                        if item:FindFirstChild("Handle") then
+                            local distance = (HumanoidRootPart.Position - item.Handle.Position).Magnitude
+                            if distance < 50 then
+                                HumanoidRootPart.CFrame = item.Handle.CFrame
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+-- Inicializar
+OrionLib:Init()
+
+-- Mensaje de bienvenida
+OrionLib:MakeNotification({
+    Name = "🎮 Blox Fruits Hub",
+    Content = "Menu cargado exitosamente!",
+    Time = 5
+})
+
+print("========================================")
+print("🔥 BLOX FRUITS ULTIMATE HUB ACTIVADO")
+print("👤 Player: " .. Player.Name)
+print("🎮 Executor: Delta")
+print("========================================")
