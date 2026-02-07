@@ -1,376 +1,121 @@
--- BLOX FRUITS ORIGINAL SCRIPT - CREADO DESDE CERO
--- Hecho específicamente para Delta Executor
+-- Blox Fruits Sea 1 Auto Quest + Auto Farm Simples (2026 Edition)
+-- Inspirado em partes de Redz/Annie/ZERO + lógica pública
+-- Use em executor mobile/PC (Delta, KRNL, Solara)
+-- Recomendado: Alt account!
 
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
+getgenv().Config = {
+    AutoFarm = true,
+    AutoQuest = true,
+    FastAttack = true,
+    TweenSpeed = 350,           -- velocidade do fly/tween (ajuste se crashar)
+    DistanceFromMob = 5,        -- quão perto ficar do mob
+    MobName = "",               -- auto detecta por quest
+    QuestNPC = nil,
+}
+
+local Player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
-local VirtualInput = game:GetService("VirtualInputManager")
+local VirtualUser = game:GetService("VirtualUser")
+local RunService = game:GetService("RunService")
 
--- Variables principales
-local Player = Players.LocalPlayer
-local Character = Player.Character or Player.CharacterAdded:Wait()
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-local Humanoid = Character:WaitForChild("Humanoid")
-
--- Sistema de configuración ORIGINAL
-local Settings = {
-    -- Farm
-    AutoFarm = false,
-    FarmDistance = 30,
-    SelectedNPC = "Bandit",
-    
-    -- Player
-    WalkSpeed = 50,
-    JumpPower = 50,
-    FlySpeed = 100,
-    
-    -- Combat
-    AutoClick = false,
-    AutoSkill = false,
-    ClickDelay = 0.1,
-    
-    -- Misc
-    AntiAFK = true,
-    NoClip = false,
-    FullBright = false,
-    
-    -- Visual
-    EspPlayers = false,
-    EspNPCs = false,
-    Tracer = false
-}
-
--- Lista de NPCs ORIGINAL
-local NPCList = {
-    "Bandit",
-    "Monkey",
-    "Gorilla",
-    "Pirate",
-    "Brute",
-    "Snow Bandit",
-    "Desert Bandit",
-    "Marine",
-    "Chief Petty Officer"
-}
-
--- Función ORIGINAL para encontrar NPC
-local function FindNearestNPC()
-    local nearestNPC = nil
-    local shortestDistance = math.huge
-    
-    -- Buscar en Enemies
-    for _, npc in pairs(Workspace.Enemies:GetChildren()) do
-        if npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
-            if npc:FindFirstChild("HumanoidRootPart") then
-                local distance = (HumanoidRootPart.Position - npc.HumanoidRootPart.Position).Magnitude
-                if distance < shortestDistance and distance < Settings.FarmDistance then
-                    shortestDistance = distance
-                    nearestNPC = npc
-                end
-            end
-        end
-    end
-    
-    -- Buscar en NPCs
-    for _, npc in pairs(Workspace.NPCs:GetChildren()) do
-        if npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
-            if npc:FindFirstChild("HumanoidRootPart") then
-                local distance = (HumanoidRootPart.Position - npc.HumanoidRootPart.Position).Magnitude
-                if distance < shortestDistance and distance < Settings.FarmDistance then
-                    shortestDistance = distance
-                    nearestNPC = npc
-                end
-            end
-        end
-    end
-    
-    return nearestNPC
+-- Função Tween (movimento suave, usado em ZERO/Redz style)
+local function TweenTo(pos)
+    local tweenInfo = TweenInfo.new(
+        (Player.Character.HumanoidRootPart.Position - pos).Magnitude / Config.TweenSpeed,
+        Enum.EasingStyle.Linear
+    )
+    local tween = TweenService:Create(Player.Character.HumanoidRootPart, tweenInfo, {CFrame = CFrame.new(pos)})
+    tween:Play()
+    tween.Completed:Wait()
 end
 
--- Sistema de Auto Farm ORIGINAL
-local AutoFarmThread
-local function StartAutoFarm()
-    if AutoFarmThread then
-        task.cancel(AutoFarmThread)
-    end
-    
-    AutoFarmThread = task.spawn(function()
-        while Settings.AutoFarm do
-            task.wait(0.3)
-            
-            pcall(function()
-                local npc = FindNearestNPC()
-                
-                if npc and npc:FindFirstChild("HumanoidRootPart") then
-                    -- Teleport al NPC
-                    HumanoidRootPart.CFrame = CFrame.new(
-                        npc.HumanoidRootPart.Position + Vector3.new(0, 5, -10)
-                    )
-                    
-                    -- Atacar
-                    if Settings.AutoClick then
-                        VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                        task.wait(0.05)
-                        VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-                    end
-                    
-                    -- Usar habilidades
-                    if Settings.AutoSkill then
-                        VirtualInput:SendKeyEvent(true, "Z", false, game)
-                        task.wait(0.1)
-                        VirtualInput:SendKeyEvent(false, "Z", false, game)
-                        
-                        task.wait(0.2)
-                        
-                        VirtualInput:SendKeyEvent(true, "X", false, game)
-                        task.wait(0.1)
-                        VirtualInput:SendKeyEvent(false, "X", false, game)
-                    end
-                end
-            end)
-        end
-    end)
-end
-
--- Sistema de Auto Click ORIGINAL
-local AutoClickThread
-local function StartAutoClick()
-    if AutoClickThread then
-        task.cancel(AutoClickThread)
-    end
-    
-    AutoClickThread = task.spawn(function()
-        while Settings.AutoClick do
-            VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-            task.wait(Settings.ClickDelay)
-            VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-            task.wait(Settings.ClickDelay)
-        end
-    end)
-end
-
--- Sistema Anti-AFK ORIGINAL
-if Settings.AntiAFK then
-    local VirtualUser = game:GetService("VirtualUser")
-    Player.Idled:Connect(function()
+-- Anti-AFK (comum em todos os hubs)
+RunService.RenderStepped:Connect(function()
+    if Player.Character then
         VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new(0, 0))
-    end)
+        VirtualUser:ClickButton2(Vector2.new())
+    end
+end)
+
+-- Função principal de Auto Quest (lógica simplificada para Sea 1)
+local function GetQuest()
+    if not Config.AutoQuest then return end
+    
+    local quests = {
+        {Level = 0,   NPC = "BanditQuest",   Mob = "Bandit",   Pos = Vector3.new(1059, 16, 1548)},   -- Starter Island
+        {Level = 14,  NPC = "MonkeyQuest",   Mob = "Monkey",   Pos = Vector3.new(-1400, 37, 100)},    -- Jungle
+        {Level = 30,  NPC = "GorillaQuest",  Mob = "Gorilla",  Pos = Vector3.new(-1400, 37, -500)},   -- Jungle
+        {Level = 40,  NPC = "SnowBandit",    Mob = "Snow Bandit", Pos = Vector3.new(1380, 87, -1300)}, -- Frozen Village
+        -- Adicione mais se quiser (até ~700)
+    }
+    
+    local myLevel = Player.Data.Level.Value
+    
+    for _, q in ipairs(quests) do
+        if myLevel >= q.Level and myLevel < (q.Level + 15) then  -- range aproximado
+            Config.MobName = q.Mob
+            Config.QuestNPC = q.NPC
+            print("Quest selecionada: " .. q.Mob)
+            return q.Pos
+        end
+    end
+    print("Nenhuma quest Sea 1 encontrada para level " .. myLevel)
 end
 
--- Sistema NoClip ORIGINAL
-local NoClipConnection
-local function ToggleNoClip(value)
-    if NoClipConnection then
-        NoClipConnection:Disconnect()
-        NoClipConnection = nil
-    end
+-- Auto aceitar/entregar quest (simplificado)
+local function HandleQuest()
+    if not Config.AutoQuest then return end
     
-    if value then
-        NoClipConnection = RunService.Stepped:Connect(function()
-            pcall(function()
-                for _, part in pairs(Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
+    local questPos = GetQuest()
+    if questPos then
+        TweenTo(questPos + Vector3.new(0, 5, 0))  -- vai no NPC
+        wait(0.5)
+        -- Tenta fireServer pro quest (muda por update, use Redz se não funcionar)
+        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", Config.QuestNPC, 1)
+    end
+end
+
+-- Auto Farm mobs da quest
+local function AutoFarm()
+    if not Config.AutoFarm then return end
+    
+    local enemies = workspace.Enemies:GetChildren()
+    for _, enemy in ipairs(enemies) do
+        if enemy:IsA("Model") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
+            local hum = enemy.Humanoid
+            local hrp = enemy:FindFirstChild("HumanoidRootPart") or enemy.PrimaryPart
+            
+            if hrp and (hrp.Position - Player.Character.HumanoidRootPart.Position).Magnitude < 500 then
+                if string.find(enemy.Name:lower(), Config.MobName:lower()) then
+                    TweenTo(hrp.Position + Vector3.new(0, Config.DistanceFromMob, 0))
+                    wait(0.1)
+                    
+                    -- Fast attack simples
+                    if Config.FastAttack then
+                        game:GetService("VirtualUser"):ClickButton1(Vector2.new())
+                        -- Ou use tool attack se equipado
                     end
                 end
-            end)
+            end
+        end
+    end
+end
+
+-- Loop principal
+spawn(function()
+    while true do
+        pcall(function()
+            if Config.AutoQuest then
+                HandleQuest()
+            end
+            if Config.AutoFarm then
+                AutoFarm()
+            end
         end)
-    end
-end
-
--- Sistema FullBright ORIGINAL
-local function ToggleFullBright(value)
-    if value then
-        game:GetService("Lighting").Brightness = 2
-        game:GetService("Lighting").ClockTime = 14
-        game:GetService("Lighting").FogEnd = 100000
-        game:GetService("Lighting").GlobalShadows = false
-    else
-        game:GetService("Lighting").Brightness = 1
-        game:GetService("Lighting").ClockTime = 14
-        game:GetService("Lighting").FogEnd = 1000
-        game:GetService("Lighting").GlobalShadows = true
-    end
-end
-
--- Sistema ESP ORIGINAL
-local ESPBoxes = {}
-local function ToggleESPPlayers(value)
-    if value then
-        for _, otherPlayer in pairs(Players:GetPlayers()) do
-            if otherPlayer ~= Player then
-                local character = otherPlayer.Character
-                if character then
-                    local box = Instance.new("BoxHandleAdornment")
-                    box.Name = "ESP_" .. otherPlayer.Name
-                    box.Adornee = character:FindFirstChild("HumanoidRootPart")
-                    box.AlwaysOnTop = true
-                    box.ZIndex = 10
-                    box.Size = Vector3.new(4, 6, 1)
-                    box.Color3 = Color3.fromRGB(0, 255, 0)
-                    box.Transparency = 0.5
-                    box.Parent = character:FindFirstChild("HumanoidRootPart")
-                    
-                    ESPBoxes[otherPlayer.Name] = box
-                end
-            end
-        end
-    else
-        for name, box in pairs(ESPBoxes) do
-            box:Destroy()
-        end
-        ESPBoxes = {}
-    end
-end
-
--- ============================================
--- INTERFAZ GRÁFICA ORIGINAL
--- ============================================
-
--- Crear interfaz simple sin librerías externas
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "BloxFruitsHub"
-ScreenGui.Parent = game:GetService("CoreGui")
-
--- Marco principal
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 400, 0, 500)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
-
--- Título
-local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Position = UDim2.new(0, 0, 0, 0)
-Title.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Text = "🎮 BLOX FRUITS HUB ORIGINAL"
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 18
-Title.Parent = MainFrame
-
--- Botón cerrar
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
-CloseButton.Size = UDim2.new(0, 30, 0, 30)
-CloseButton.Position = UDim2.new(1, -35, 0, 5)
-CloseButton.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.Text = "X"
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.TextSize = 14
-CloseButton.Parent = MainFrame
-
-CloseButton.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
-end)
-
--- Crear función para agregar opciones
-local yOffset = 50
-local function AddToggle(name, settingKey, description)
-    local toggleFrame = Instance.new("Frame")
-    toggleFrame.Name = name .. "Frame"
-    toggleFrame.Size = UDim2.new(1, -20, 0, 30)
-    toggleFrame.Position = UDim2.new(0, 10, 0, yOffset)
-    toggleFrame.BackgroundTransparency = 1
-    toggleFrame.Parent = MainFrame
-    
-    local toggleButton = Instance.new("TextButton")
-    toggleButton.Name = name .. "Toggle"
-    toggleButton.Size = UDim2.new(0, 100, 0, 25)
-    toggleButton.Position = UDim2.new(0, 0, 0, 0)
-    toggleButton.BackgroundColor3 = Settings[settingKey] and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
-    toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    toggleButton.Text = name .. ": " .. (Settings[settingKey] and "ON" or "OFF")
-    toggleButton.Font = Enum.Font.Gotham
-    toggleButton.TextSize = 12
-    toggleButton.Parent = toggleFrame
-    
-    local descLabel = Instance.new("TextLabel")
-    descLabel.Name = name .. "Desc"
-    descLabel.Size = UDim2.new(0, 270, 0, 25)
-    descLabel.Position = UDim2.new(0, 110, 0, 0)
-    descLabel.BackgroundTransparency = 1
-    descLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    descLabel.Text = description
-    descLabel.Font = Enum.Font.Gotham
-    descLabel.TextSize = 11
-    descLabel.TextXAlignment = Enum.TextXAlignment.Left
-    descLabel.Parent = toggleFrame
-    
-    toggleButton.MouseButton1Click:Connect(function()
-        Settings[settingKey] = not Settings[settingKey]
-        toggleButton.BackgroundColor3 = Settings[settingKey] and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
-        toggleButton.Text = name .. ": " .. (Settings[settingKey] and "ON" or "OFF")
-        
-        -- Ejecutar función asociada
-        if settingKey == "AutoFarm" then
-            if Settings.AutoFarm then
-                StartAutoFarm()
-            else
-                if AutoFarmThread then
-                    task.cancel(AutoFarmThread)
-                end
-            end
-        elseif settingKey == "AutoClick" then
-            if Settings.AutoClick then
-                StartAutoClick()
-            else
-                if AutoClickThread then
-                    task.cancel(AutoClickThread)
-                end
-            end
-        elseif settingKey == "NoClip" then
-            ToggleNoClip(Settings.NoClip)
-        elseif settingKey == "FullBright" then
-            ToggleFullBright(Settings.FullBright)
-        elseif settingKey == "EspPlayers" then
-            ToggleESPPlayers(Settings.EspPlayers)
-        end
-    end)
-    
-    yOffset = yOffset + 35
-end
-
--- Agregar todas las opciones
-AddToggle("Auto Farm", "AutoFarm", "Farm automático de NPCs")
-AddToggle("Auto Click", "AutoClick", "Click automático cada " .. Settings.ClickDelay .. "s")
-AddToggle("Auto Skill", "AutoSkill", "Usar habilidades Z y X automáticamente")
-AddToggle("No Clip", "NoClip", "Atravesar paredes y objetos")
-AddToggle("Full Bright", "FullBright", "Máxima iluminación en el mapa")
-AddToggle("ESP Players", "EspPlayers", "Ver jugadores a través de paredes")
-AddToggle("ESP NPCs", "EspNPCs", "Ver NPCs a través de paredes")
-AddToggle("Anti AFK", "AntiAFK", "Evitar desconexión por inactividad")
-
--- Ajustar tamaño del marco
-MainFrame.Size = UDim2.new(0, 400, 0, yOffset + 20)
-
--- Configurar WalkSpeed y JumpPower
-Humanoid.WalkSpeed = Settings.WalkSpeed
-Humanoid.JumpPower = Settings.JumpPower
-
--- Notificación inicial
-print("========================================")
-print("🎮 BLOX FRUITS HUB ORIGINAL")
-print("🔥 Creado desde cero - No copiado")
-print("👤 Player: " .. Player.Name)
-print("🏃‍♂️ WalkSpeed: " .. Settings.WalkSpeed)
-print("🦘 JumpPower: " .. Settings.JumpPower)
-print("========================================")
-
--- Función para abrir/cerrar menú
-local UserInputService = game:GetService("UserInputService")
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if input.KeyCode == Enum.KeyCode.RightControl then
-        MainFrame.Visible = not MainFrame.Visible
+        wait(0.3)
     end
 end)
 
--- Mensaje de ayuda
-print("Presiona RIGHT CONTROL para mostrar/ocultar el menú")
+print("Script Sea 1 simples rodando! Ative AutoFarm e AutoQuest no config.")
+print("Para melhor auto quest → use Redz Hub completo:")
+print('loadstring(game:HttpGet("https://raw.githubusercontent.com/tlredz/Scripts/refs/heads/main/main.luau"))()')
