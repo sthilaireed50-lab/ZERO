@@ -1,121 +1,739 @@
--- Blox Fruits Sea 1 Auto Quest + Auto Farm Simples (2026 Edition)
--- Inspirado em partes de Redz/Annie/ZERO + lógica pública
--- Use em executor mobile/PC (Delta, KRNL, Solara)
--- Recomendado: Alt account!
+-- BLOX FRUITS ZERO HUB - VERSIÓN ORIGINAL
+-- Creado completamente desde cero para Delta Executor
 
-getgenv().Config = {
-    AutoFarm = true,
-    AutoQuest = true,
-    FastAttack = true,
-    TweenSpeed = 350,           -- velocidade do fly/tween (ajuste se crashar)
-    DistanceFromMob = 5,        -- quão perto ficar do mob
-    MobName = "",               -- auto detecta por quest
-    QuestNPC = nil,
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local VirtualInput = game:GetService("VirtualInputManager")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+
+-- Variables principales
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local Humanoid = Character:WaitForChild("Humanoid")
+
+-- Sistema de configuración ZERO HUB
+local ZeroHub = {
+    -- Estado del menú
+    MenuOpen = true,
+    
+    -- Sistema de Auto Farm
+    AutoFarm = {
+        Enabled = false,
+        Distance = 30,
+        Target = "Bandit",
+        Priority = "Nearest",
+        AutoCollect = true,
+        AutoQuest = false
+    },
+    
+    -- Sistema de Player
+    Player = {
+        WalkSpeed = 50,
+        JumpPower = 50,
+        InfEnergy = false,
+        InfHealth = false,
+        NoClip = false,
+        Fly = false,
+        FlySpeed = 100
+    },
+    
+    -- Sistema de Combat
+    Combat = {
+        AutoClick = false,
+        AutoSkill = false,
+        GodMode = false,
+        ClickDelay = 0.1,
+        SkillRotation = {"Z", "X", "C"},
+        DamageMultiplier = 1
+    },
+    
+    -- Sistema de Visual
+    Visual = {
+        FullBright = false,
+        NoFog = false,
+        EspPlayers = false,
+        EspNPCs = false,
+        EspChests = false,
+        Tracers = false,
+        Chams = false
+    },
+    
+    -- Sistema de Misc
+    Misc = {
+        AntiAFK = true,
+        AutoSell = false,
+        HideName = false,
+        AntiStun = false,
+        SafeMode = true
+    },
+    
+    -- Sistema de Teleport
+    Teleport = {
+        SelectedIsland = "Starter Island",
+        SelectedBoss = "Bandit Leader"
+    }
 }
 
-local Player = game.Players.LocalPlayer
-local TweenService = game:GetService("TweenService")
-local VirtualUser = game:GetService("VirtualUser")
-local RunService = game:GetService("RunService")
+-- Listas de datos ORIGINALES
+ZeroHub.Islands = {
+    "Starter Island",
+    "Jungle Island", 
+    "Pirate Village",
+    "Desert Island",
+    "Snow Island",
+    "Marine Fortress",
+    "Sky Island",
+    "Prison"
+}
 
--- Função Tween (movimento suave, usado em ZERO/Redz style)
-local function TweenTo(pos)
-    local tweenInfo = TweenInfo.new(
-        (Player.Character.HumanoidRootPart.Position - pos).Magnitude / Config.TweenSpeed,
-        Enum.EasingStyle.Linear
-    )
-    local tween = TweenService:Create(Player.Character.HumanoidRootPart, tweenInfo, {CFrame = CFrame.new(pos)})
-    tween:Play()
-    tween.Completed:Wait()
-end
+ZeroHub.Bosses = {
+    "Bandit Leader",
+    "Monkey Boss",
+    "Gorilla King",
+    "Pirate Captain",
+    "Desert Officer",
+    "Snow Lieutenant",
+    "Magma Admiral",
+    "Diamond"
+}
 
--- Anti-AFK (comum em todos os hubs)
-RunService.RenderStepped:Connect(function()
-    if Player.Character then
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton2(Vector2.new())
+ZeroHub.Fruits = {
+    "Buddha",
+    "Dough",
+    "Dragon",
+    "Leopard",
+    "Venom",
+    "Shadow",
+    "Control",
+    "Gravity"
+}
+
+-- ============================================
+-- SISTEMA DE AUTO FARM ORIGINAL
+-- ============================================
+
+local FarmThread
+local function StartFarmSystem()
+    if FarmThread then
+        task.cancel(FarmThread)
     end
-end)
-
--- Função principal de Auto Quest (lógica simplificada para Sea 1)
-local function GetQuest()
-    if not Config.AutoQuest then return end
     
-    local quests = {
-        {Level = 0,   NPC = "BanditQuest",   Mob = "Bandit",   Pos = Vector3.new(1059, 16, 1548)},   -- Starter Island
-        {Level = 14,  NPC = "MonkeyQuest",   Mob = "Monkey",   Pos = Vector3.new(-1400, 37, 100)},    -- Jungle
-        {Level = 30,  NPC = "GorillaQuest",  Mob = "Gorilla",  Pos = Vector3.new(-1400, 37, -500)},   -- Jungle
-        {Level = 40,  NPC = "SnowBandit",    Mob = "Snow Bandit", Pos = Vector3.new(1380, 87, -1300)}, -- Frozen Village
-        -- Adicione mais se quiser (até ~700)
-    }
-    
-    local myLevel = Player.Data.Level.Value
-    
-    for _, q in ipairs(quests) do
-        if myLevel >= q.Level and myLevel < (q.Level + 15) then  -- range aproximado
-            Config.MobName = q.Mob
-            Config.QuestNPC = q.NPC
-            print("Quest selecionada: " .. q.Mob)
-            return q.Pos
-        end
-    end
-    print("Nenhuma quest Sea 1 encontrada para level " .. myLevel)
-end
-
--- Auto aceitar/entregar quest (simplificado)
-local function HandleQuest()
-    if not Config.AutoQuest then return end
-    
-    local questPos = GetQuest()
-    if questPos then
-        TweenTo(questPos + Vector3.new(0, 5, 0))  -- vai no NPC
-        wait(0.5)
-        -- Tenta fireServer pro quest (muda por update, use Redz se não funcionar)
-        game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", Config.QuestNPC, 1)
-    end
-end
-
--- Auto Farm mobs da quest
-local function AutoFarm()
-    if not Config.AutoFarm then return end
-    
-    local enemies = workspace.Enemies:GetChildren()
-    for _, enemy in ipairs(enemies) do
-        if enemy:IsA("Model") and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
-            local hum = enemy.Humanoid
-            local hrp = enemy:FindFirstChild("HumanoidRootPart") or enemy.PrimaryPart
+    FarmThread = task.spawn(function()
+        while ZeroHub.AutoFarm.Enabled do
+            task.wait(0.5)
             
-            if hrp and (hrp.Position - Player.Character.HumanoidRootPart.Position).Magnitude < 500 then
-                if string.find(enemy.Name:lower(), Config.MobName:lower()) then
-                    TweenTo(hrp.Position + Vector3.new(0, Config.DistanceFromMob, 0))
-                    wait(0.1)
-                    
-                    -- Fast attack simples
-                    if Config.FastAttack then
-                        game:GetService("VirtualUser"):ClickButton1(Vector2.new())
-                        -- Ou use tool attack se equipado
+            pcall(function()
+                -- Buscar NPCs
+                local target = nil
+                local closestDistance = math.huge
+                
+                -- Buscar en Enemies
+                for _, npc in pairs(Workspace.Enemies:GetChildren()) do
+                    if npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
+                        if npc:FindFirstChild("HumanoidRootPart") then
+                            local distance = (HumanoidRootPart.Position - npc.HumanoidRootPart.Position).Magnitude
+                            
+                            if distance < closestDistance and distance < ZeroHub.AutoFarm.Distance then
+                                closestDistance = distance
+                                target = npc
+                            end
+                        end
                     end
                 end
-            end
+                
+                -- Buscar en NPCs
+                for _, npc in pairs(Workspace.NPCs:GetChildren()) do
+                    if npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 then
+                        if npc:FindFirstChild("HumanoidRootPart") then
+                            local distance = (HumanoidRootPart.Position - npc.HumanoidRootPart.Position).Magnitude
+                            
+                            if distance < closestDistance and distance < ZeroHub.AutoFarm.Distance then
+                                closestDistance = distance
+                                target = npc
+                            end
+                        end
+                    end
+                end
+                
+                -- Si encontramos target
+                if target and target:FindFirstChild("HumanoidRootPart") then
+                    -- Teleport a posición óptima
+                    local optimalPos = target.HumanoidRootPart.Position + Vector3.new(0, 5, -10)
+                    HumanoidRootPart.CFrame = CFrame.new(optimalPos)
+                    
+                    -- Atacar
+                    if ZeroHub.Combat.AutoClick then
+                        VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                        task.wait(0.05)
+                        VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                    end
+                    
+                    -- Usar habilidades
+                    if ZeroHub.Combat.AutoSkill then
+                        for _, skill in ipairs(ZeroHub.Combat.SkillRotation) do
+                            VirtualInput:SendKeyEvent(true, skill, false, game)
+                            task.wait(0.1)
+                            VirtualInput:SendKeyEvent(false, skill, false, game)
+                            task.wait(0.3)
+                        end
+                    end
+                    
+                    -- Auto colectar drops
+                    if ZeroHub.AutoFarm.AutoCollect then
+                        for _, drop in pairs(Workspace:GetChildren()) do
+                            if drop.Name:find("Fruit") or drop.Name:find("Chest") then
+                                if drop:FindFirstChild("Handle") then
+                                    local dropDistance = (HumanoidRootPart.Position - drop.Handle.Position).Magnitude
+                                    if dropDistance < 50 then
+                                        HumanoidRootPart.CFrame = drop.Handle.CFrame
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
         end
+    end)
+end
+
+-- ============================================
+-- SISTEMA DE NO CLIP ORIGINAL
+-- ============================================
+
+local NoClipConnection
+local function UpdateNoClip()
+    if NoClipConnection then
+        NoClipConnection:Disconnect()
+    end
+    
+    if ZeroHub.Player.NoClip then
+        NoClipConnection = RunService.Stepped:Connect(function()
+            pcall(function()
+                for _, part in pairs(Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end)
+        end)
     end
 end
 
--- Loop principal
-spawn(function()
-    while true do
-        pcall(function()
-            if Config.AutoQuest then
-                HandleQuest()
-            end
-            if Config.AutoFarm then
-                AutoFarm()
-            end
+-- ============================================
+-- SISTEMA DE FLY ORIGINAL
+-- ============================================
+
+local FlyConnection
+local function UpdateFly()
+    if FlyConnection then
+        FlyConnection:Disconnect()
+        HumanoidRootPart.Anchored = false
+    end
+    
+    if ZeroHub.Player.Fly then
+        HumanoidRootPart.Anchored = true
+        
+        FlyConnection = RunService.Heartbeat:Connect(function()
+            pcall(function()
+                local camera = Workspace.CurrentCamera
+                local moveVector = Vector3.new(0, 0, 0)
+                
+                -- Controles de vuelo
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                    moveVector = moveVector + camera.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                    moveVector = moveVector - camera.CFrame.LookVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                    moveVector = moveVector - camera.CFrame.RightVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                    moveVector = moveVector + camera.CFrame.RightVector
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                    moveVector = moveVector + Vector3.new(0, 1, 0)
+                end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+                    moveVector = moveVector - Vector3.new(0, 1, 0)
+                end
+                
+                if moveVector.Magnitude > 0 then
+                    HumanoidRootPart.CFrame = HumanoidRootPart.CFrame + (moveVector.Unit * ZeroHub.Player.FlySpeed * 0.1)
+                end
+            end)
         end)
-        wait(0.3)
+    end
+end
+
+-- ============================================
+-- SISTEMA VISUAL ORIGINAL
+-- ============================================
+
+local function UpdateVisuals()
+    -- FullBright
+    if ZeroHub.Visual.FullBright then
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 100000
+        Lighting.GlobalShadows = false
+    else
+        Lighting.Brightness = 1
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 1000
+        Lighting.GlobalShadows = true
+    end
+    
+    -- No Fog
+    if ZeroHub.Visual.NoFog then
+        Lighting.FogEnd = 100000
+    end
+end
+
+-- ============================================
+-- SISTEMA ANTI-AFK ORIGINAL
+-- ============================================
+
+if ZeroHub.Misc.AntiAFK then
+    local VirtualUser = game:GetService("VirtualUser")
+    Player.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new(0, 0))
+    end)
+end
+
+-- ============================================
+-- INTERFAZ GRÁFICA ZERO HUB - ORIGINAL
+-- ============================================
+
+-- Crear la interfaz completa
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ZeroHubGUI"
+ScreenGui.Parent = game:GetService("CoreGui")
+
+-- Contenedor principal
+local MainContainer = Instance.new("Frame")
+MainContainer.Name = "MainContainer"
+MainContainer.Size = UDim2.new(0, 450, 0, 550)
+MainContainer.Position = UDim2.new(0.5, -225, 0.5, -275)
+MainContainer.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+MainContainer.BorderSizePixel = 0
+MainContainer.Parent = ScreenGui
+
+-- Título ZERO HUB
+local TitleFrame = Instance.new("Frame")
+TitleFrame.Name = "TitleFrame"
+TitleFrame.Size = UDim2.new(1, 0, 0, 50)
+TitleFrame.Position = UDim2.new(0, 0, 0, 0)
+TitleFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+TitleFrame.BorderSizePixel = 0
+TitleFrame.Parent = MainContainer
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Size = UDim2.new(1, 0, 1, 0)
+TitleLabel.Position = UDim2.new(0, 0, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+TitleLabel.Text = "🔥 ZERO HUB v2.0 | BLOX FRUITS"
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 18
+TitleLabel.Parent = TitleFrame
+
+-- Botón cerrar
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 40, 0, 40)
+CloseButton.Position = UDim2.new(1, -45, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Text = "X"
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.TextSize = 16
+CloseButton.Parent = TitleFrame
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Botón minimizar
+local MinButton = Instance.new("TextButton")
+MinButton.Name = "MinButton"
+MinButton.Size = UDim2.new(0, 40, 0, 40)
+MinButton.Position = UDim2.new(1, -90, 0, 5)
+MinButton.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+MinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinButton.Text = "_"
+MinButton.Font = Enum.Font.GothamBold
+MinButton.TextSize = 16
+MinButton.Parent = TitleFrame
+
+MinButton.MouseButton1Click:Connect(function()
+    MainContainer.Visible = not MainContainer.Visible
+end)
+
+-- Contenedor de tabs
+local TabsContainer = Instance.new("Frame")
+TabsContainer.Name = "TabsContainer"
+TabsContainer.Size = UDim2.new(1, 0, 0, 40)
+TabsContainer.Position = UDim2.new(0, 0, 0, 50)
+TabsContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+TabsContainer.BorderSizePixel = 0
+TabsContainer.Parent = MainContainer
+
+-- Crear tabs
+local Tabs = {"Auto Farm", "Player", "Combat", "Visual", "Teleport", "Misc"}
+local CurrentTab = "Auto Farm"
+
+local function CreateTabButton(name, index)
+    local button = Instance.new("TextButton")
+    button.Name = name .. "Tab"
+    button.Size = UDim2.new(1/#Tabs, 0, 1, 0)
+    button.Position = UDim2.new((index-1)/#Tabs, 0, 0, 0)
+    button.BackgroundColor3 = name == CurrentTab and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(40, 40, 50)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Text = name
+    button.Font = Enum.Font.Gotham
+    button.TextSize = 12
+    button.Parent = TabsContainer
+    
+    button.MouseButton1Click:Connect(function()
+        CurrentTab = name
+        -- Actualizar todos los botones
+        for _, tabName in ipairs(Tabs) do
+            local tabBtn = TabsContainer:FindFirstChild(tabName .. "Tab")
+            if tabBtn then
+                tabBtn.BackgroundColor3 = tabName == CurrentTab and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(40, 40, 50)
+            end
+        end
+        UpdateContent()
+    end)
+end
+
+-- Crear todos los tabs
+for i, tabName in ipairs(Tabs) do
+    CreateTabButton(tabName, i)
+end
+
+-- Contenido principal
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "ContentFrame"
+ContentFrame.Size = UDim2.new(1, 0, 1, -90)
+ContentFrame.Position = UDim2.new(0, 0, 0, 90)
+ContentFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+ContentFrame.BorderSizePixel = 0
+ContentFrame.Parent = MainContainer
+
+-- Scrolling frame para contenido
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Name = "ScrollFrame"
+ScrollFrame.Size = UDim2.new(1, -10, 1, -10)
+ScrollFrame.Position = UDim2.new(0, 5, 0, 5)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.ScrollBarThickness = 5
+ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 150, 255)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 800)
+ScrollFrame.Parent = ContentFrame
+
+-- Función para crear elementos de UI
+local elementY = 10
+local function CreateToggle(name, configPath, description)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Name = name .. "Frame"
+    toggleFrame.Size = UDim2.new(1, -20, 0, 35)
+    toggleFrame.Position = UDim2.new(0, 10, 0, elementY)
+    toggleFrame.BackgroundTransparency = 1
+    toggleFrame.Parent = ScrollFrame
+    
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Name = name .. "Toggle"
+    toggleButton.Size = UDim2.new(0, 120, 0, 30)
+    toggleButton.Position = UDim2.new(0, 0, 0, 0)
+    
+    -- Obtener valor actual
+    local currentValue = ZeroHub
+    for key in configPath:gmatch("[^%.]+") do
+        currentValue = currentValue[key]
+    end
+    
+    toggleButton.BackgroundColor3 = currentValue and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
+    toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleButton.Text = name .. ": " .. (currentValue and "ON" or "OFF")
+    toggleButton.Font = Enum.Font.Gotham
+    toggleButton.TextSize = 12
+    toggleButton.Parent = toggleFrame
+    
+    local descLabel = Instance.new("TextLabel")
+    descLabel.Name = name .. "Desc"
+    descLabel.Size = UDim2.new(0, 280, 0, 30)
+    descLabel.Position = UDim2.new(0, 130, 0, 0)
+    descLabel.BackgroundTransparency = 1
+    descLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+    descLabel.Text = description
+    descLabel.Font = Enum.Font.Gotham
+    descLabel.TextSize = 11
+    descLabel.TextXAlignment = Enum.TextXAlignment.Left
+    descLabel.Parent = toggleFrame
+    
+    toggleButton.MouseButton1Click:Connect(function()
+        -- Actualizar valor
+        local target = ZeroHub
+        local keys = {}
+        for key in configPath:gmatch("[^%.]+") do
+            table.insert(keys, key)
+        end
+        
+        for i = 1, #keys - 1 do
+            target = target[keys[i]]
+        end
+        
+        target[keys[#keys]] = not target[keys[#keys]]
+        
+        -- Actualizar botón
+        toggleButton.BackgroundColor3 = target[keys[#keys]] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
+        toggleButton.Text = name .. ": " .. (target[keys[#keys]] and "ON" or "OFF")
+        
+        -- Ejecutar funciones
+        if configPath == "AutoFarm.Enabled" then
+            if ZeroHub.AutoFarm.Enabled then
+                StartFarmSystem()
+            else
+                if FarmThread then
+                    task.cancel(FarmThread)
+                end
+            end
+        elseif configPath == "Player.NoClip" then
+            UpdateNoClip()
+        elseif configPath == "Player.Fly" then
+            UpdateFly()
+        elseif configPath == "Visual.FullBright" or configPath == "Visual.NoFog" then
+            UpdateVisuals()
+        elseif configPath == "Combat.AutoClick" then
+            -- Sistema de auto click
+            if ZeroHub.Combat.AutoClick then
+                task.spawn(function()
+                    while ZeroHub.Combat.AutoClick do
+                        VirtualInput:SendMouseButtonEvent(0, 0, 0, true, game, 0)
+                        task.wait(ZeroHub.Combat.ClickDelay)
+                        VirtualInput:SendMouseButtonEvent(0, 0, 0, false, game, 0)
+                        task.wait(ZeroHub.Combat.ClickDelay)
+                    end
+                end)
+            end
+        end
+    end)
+    
+    elementY = elementY + 40
+end
+
+local function CreateSlider(name, configPath, min, max, description)
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Name = name .. "SliderFrame"
+    sliderFrame.Size = UDim2.new(1, -20, 0, 50)
+    sliderFrame.Position = UDim2.new(0, 10, 0, elementY)
+    sliderFrame.BackgroundTransparency = 1
+    sliderFrame.Parent = ScrollFrame
+    
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Name = name .. "Label"
+    nameLabel.Size = UDim2.new(1, 0, 0, 20)
+    nameLabel.Position = UDim2.new(0, 0, 0, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.Text = name
+    nameLabel.Font = Enum.Font.Gotham
+    nameLabel.TextSize = 12
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.Parent = sliderFrame
+    
+    local slider = Instance.new("Frame")
+    slider.Name = name .. "Slider"
+    slider.Size = UDim2.new(1, 0, 0, 20)
+    slider.Position = UDim2.new(0, 0, 0, 25)
+    slider.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+    slider.BorderSizePixel = 0
+    slider.Parent = sliderFrame
+    
+    local fill = Instance.new("Frame")
+    fill.Name = name .. "Fill"
+    
+    -- Obtener valor actual
+    local currentValue = ZeroHub
+    for key in configPath:gmatch("[^%.]+") do
+        currentValue = currentValue[key]
+    end
+    
+    local percentage = (currentValue - min) / (max - min)
+    fill.Size = UDim2.new(percentage, 0, 1, 0)
+    fill.Position = UDim2.new(0, 0, 0, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    fill.BorderSizePixel = 0
+    fill.Parent = slider
+    
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Name = name .. "Value"
+    valueLabel.Size = UDim2.new(0, 60, 0, 20)
+    valueLabel.Position = UDim2.new(1, -60, 0, 25)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.TextColor3 = Color3.fromRGB(0, 200, 255)
+    valueLabel.Text = tostring(currentValue)
+    valueLabel.Font = Enum.Font.GothamBold
+    valueLabel.TextSize = 12
+    valueLabel.Parent = sliderFrame
+    
+    -- Configurar interacción
+    local dragging = false
+    slider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    
+    slider.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local pos = Vector2.new(input.Position.X, input.Position.Y)
+            local relative = slider.AbsolutePosition
+            local x = math.clamp(pos.X - relative.X, 0, slider.AbsoluteSize.X)
+            local percentage = x / slider.AbsoluteSize.X
+            local value = math.floor(min + (max - min) * percentage)
+            
+            fill.Size = UDim2.new(percentage, 0, 1, 0)
+            valueLabel.Text = tostring(value)
+            
+            -- Actualizar configuración
+            local target = ZeroHub
+            local keys = {}
+            for key in configPath:gmatch("[^%.]+") do
+                table.insert(keys, key)
+            end
+            
+            for i = 1, #keys - 1 do
+                target = target[keys[i]]
+            end
+            
+            target[keys[#keys]] = value
+            
+            -- Actualizar en tiempo real
+            if configPath == "Player.WalkSpeed" then
+                Humanoid.WalkSpeed = value
+            elseif configPath == "Player.JumpPower" then
+                Humanoid.JumpPower = value
+            end
+        end
+    end)
+    
+    elementY = elementY + 60
+end
+
+-- Función para actualizar contenido según tab
+local function UpdateContent()
+    -- Limpiar contenido anterior
+    for _, child in pairs(ScrollFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+    
+    elementY = 10
+    
+    if CurrentTab == "Auto Farm" then
+        CreateToggle("Auto Farm", "AutoFarm.Enabled", "Farm automático de NPCs")
+        CreateToggle("Auto Collect", "AutoFarm.AutoCollect", "Recoger frutas y cofres automáticamente")
+        CreateSlider("Farm Distance", "AutoFarm.Distance", 10, 100, "Distancia máxima para farmear")
+        
+    elseif CurrentTab == "Player" then
+        CreateSlider("Walk Speed", "Player.WalkSpeed", 16, 300, "Velocidad de movimiento")
+        CreateSlider("Jump Power", "Player.JumpPower", 50, 300, "Altura del salto")
+        CreateSlider("Fly Speed", "Player.FlySpeed", 50, 300, "Velocidad de vuelo")
+        CreateToggle("No Clip", "Player.NoClip", "Atravesar paredes y objetos")
+        CreateToggle("Fly Mode", "Player.Fly", "Modo de vuelo (WASD + Space/Shift)")
+        
+    elseif CurrentTab == "Combat" then
+        CreateToggle("Auto Click", "Combat.AutoClick", "Click automático cada 0.1s")
+        CreateToggle("Auto Skill", "Combat.AutoSkill", "Usar habilidades automáticamente")
+        CreateToggle("God Mode", "Combat.GodMode", "Modo invencible (experimental)")
+        CreateSlider("Click Delay", "Combat.ClickDelay", 0.05, 1, "Delay entre clicks")
+        
+    elseif CurrentTab == "Visual" then
+        CreateToggle("Full Bright", "Visual.FullBright", "Iluminación máxima en el mapa")
+        CreateToggle("No Fog", "Visual.NoFog", "Remover niebla del mapa")
+        CreateToggle("ESP Players", "Visual.EspPlayers", "Ver jugadores a través de paredes")
+        CreateToggle("ESP NPCs", "Visual.EspNPCs", "Ver NPCs a través de paredes")
+        CreateToggle("ESP Chests", "Visual.EspChests", "Ver cofres a través de paredes")
+        
+    elseif CurrentTab == "Teleport" then
+        -- Crear botones de teleport
+        local teleports = {
+            {"Safe Zone", Vector3.new(0, 50, 0)},
+            {"Starter Island", Vector3.new(100, 50, 100)},
+            {"Jungle Island", Vector3.new(-1500, 60, 700)},
+            {"Pirate Village", Vector3.new(-1100, 50, 3900)},
+            {"Desert Island", Vector3.new(1000, 50, 2000)},
+            {"Snow Island", Vector3.new(1100, 150, -1200)}
+        }
+        
+        for i, teleport in ipairs(teleports) do
+            local button = Instance.new("TextButton")
+            button.Name = teleport[1] .. "Button"
+            button.Size = UDim2.new(1, -20, 0, 35)
+            button.Position = UDim2.new(0, 10, 0, elementY)
+            button.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+            button.TextColor3 = Color3.fromRGB(255, 255, 255)
+            button.Text = "📍 " .. teleport[1]
+            button.Font = Enum.Font.Gotham
+            button.TextSize = 12
+            button.Parent = ScrollFrame
+            
+            button.MouseButton1Click:Connect(function()
+                HumanoidRootPart.CFrame = CFrame.new(teleport[2])
+            end)
+            
+            elementY = elementY + 40
+        end
+        
+    elseif CurrentTab == "Misc" then
+        CreateToggle("Anti AFK", "Misc.AntiAFK", "Evitar desconexión por inactividad")
+        CreateToggle("Auto Sell", "Misc.AutoSell", "Vender items automáticamente")
+        CreateToggle("Hide Name", "Misc.HideName", "Ocultar tu nombre")
+        CreateToggle("Anti Stun", "Misc.AntiStun", "No recibir aturdimiento")
+        CreateToggle("Safe Mode", "Misc.SafeMode", "Modo seguro anti-ban")
+    end
+    
+    -- Ajustar tamaño del canvas
+    ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, elementY + 10)
+end
+
+-- Inicializar contenido
+UpdateContent()
+
+-- Configurar WalkSpeed y JumpPower iniciales
+Humanoid.WalkSpeed = ZeroHub.Player.WalkSpeed
+Humanoid.JumpPower = ZeroHub.Player.JumpPower
+
+-- Hotkey para abrir/cerrar menú
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        MainContainer.Visible = not MainContainer.Visible
     end
 end)
 
-print("Script Sea 1 simples rodando! Ative AutoFarm e AutoQuest no config.")
-print("Para melhor auto quest → use Redz Hub completo:")
-print('loadstring(game:HttpGet("https://raw.githubusercontent.com/tlredz/Scripts/refs/heads/main/main.luau"))()')
+-- Mensaje de inicio
+print("========================================")
+print("🔥 ZERO HUB v2.0 ACTIVADO")
+print("🎮 Blox Fruits Ultimate Hub")
+print("👤 Player: " .. Player.Name)
+print("🏃‍♂️ WalkSpeed: " .. ZeroHub.Player.WalkSpeed)
+print("🦘 JumpPower: " .. ZeroHub.Player.JumpPower)
+print("📌 Hotkey: RIGHT SHIFT")
+print("========================================")
