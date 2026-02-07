@@ -1,0 +1,138 @@
+-- Script Blox Fruits Sea 1 Auto Farm
+-- Atualizado para versões recentes
+
+local Player = game:GetService("Players").LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- Configurações
+getgenv().AutoFarm = true
+getgenv().AutoCollectFruits = true
+getgenv().AutoAbility = true
+getgenv().JumpHeight = 50
+getgenv().AntiAFK = true
+
+-- Função para teleportar
+function TweenTo(pos)
+    pcall(function()
+        local tweenInfo = TweenInfo.new((HumanoidRootPart.Position - pos).Magnitude / 250, Enum.EasingStyle.Linear)
+        local tween = game:GetService("TweenService"):Create(HumanoidRootPart, tweenInfo, {CFrame = CFrame.new(pos)})
+        tween:Play()
+        tween.Completed:Wait()
+    end)
+end
+
+-- Anti AFK
+if AntiAFK then
+    local VirtualUser = game:GetService("VirtualUser")
+    Player.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end)
+end
+
+-- Alterar força de pulo
+game:GetService("Players").LocalPlayer.Character:WaitForChild("Humanoid").JumpHeight = JumpHeight
+
+-- Auto Farm
+if AutoFarm then
+    spawn(function()
+        while AutoFarm do
+            wait(0.5)
+            pcall(function()
+                local enemies = {}
+                for _, v in ipairs(workspace.Enemies:GetChildren()) do
+                    if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
+                        table.insert(enemies, v)
+                    end
+                end
+                for _, npc in ipairs(workspace.NPCs:GetChildren()) do
+                    if npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 and npc:FindFirstChild("HumanoidRootPart") then
+                        table.insert(enemies, npc)
+                    end
+                end
+                if #enemies > 0 then
+                    local target = enemies[math.random(1, #enemies)]
+                    TweenTo(target.HumanoidRootPart.Position)
+                    wait(0.2)
+                    game:GetService("VirtualInputManager"):SendKeyEvent(true, "X", false, game)
+                    game:GetService("VirtualInputManager"):SendKeyEvent(false, "X", false, game)
+                    game:GetService("VirtualInputManager"):SendKeyEvent(true, "C", false, game)
+                    game:GetService("VirtualInputManager"):SendKeyEvent(false, "C", false, game)
+                end
+            end)
+        end
+    end)
+end
+
+-- Auto Coletar Frutas
+if AutoCollectFruits then
+    spawn(function()
+        while AutoCollectFruits do
+            wait(1)
+            pcall(function()
+                for _, fruit in ipairs(workspace:GetChildren()) do
+                    if fruit.Name:find("Fruit") and fruit:FindFirstChild("Handle") then
+                        TweenTo(fruit.Handle.Position)
+                    end
+                end
+            end)
+        end
+    end)
+end
+
+-- Auto Habilidade
+if AutoAbility then
+    spawn(function()
+        while AutoAbility do
+            wait(5)
+            pcall(function()
+                game:GetService("VirtualInputManager"):SendKeyEvent(true, "F", false, game)
+                game:GetService("VirtualInputManager"):SendKeyEvent(false, "F", false, game)
+            end)
+        end
+    end)
+end
+
+-- Interface simples
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Blox Fruits Sea 1", "Sentinel")
+
+-- Tab Principal
+local MainTab = Window:NewTab("Auto Farm")
+local MainSection = MainTab:NewSection("Configurações")
+
+MainSection:NewToggle("Ligar/Desligar Auto Farm", "", function(state)
+    AutoFarm = state
+end)
+
+MainSection:NewToggle("Auto Coletar Frutas", "", function(state)
+    AutoCollectFruits = state
+end)
+
+MainSection:NewToggle("Auto Habilidade (F)", "", function(state)
+    AutoAbility = state
+end)
+
+MainSection:NewSlider("Altura do Pulô", "", 50, 0, function(value)
+    JumpHeight = value
+    game:GetService("Players").LocalPlayer.Character.Humanoid.JumpHeight = JumpHeight
+end)
+
+local PlayerTab = Window:NewTab("Player")
+local PlayerSection = PlayerTab:NewSection("Ajustes")
+
+PlayerSection:NewSlider("Velocidade", "", 100, 16, function(value)
+    game:GetService("Players").LocalPlayer.Character.Humanoid.WalkSpeed = value
+end)
+
+PlayerSection:NewSlider("Força do Pulô", "", 100, 50, function(value)
+    game:GetService("Players").LocalPlayer.Character.Humanoid.JumpHeight = value
+end)
+
+-- Creditos
+local CreditTab = Window:NewTab("Créditos")
+local CreditSection = CreditTab:NewSection("Script criado para Blox Fruits Sea 1")
+CreditSection:NewLabel("Feito para a comunidade BR")
+
+print("Script Blox Fruits Sea 1 carregado com sucesso!")
